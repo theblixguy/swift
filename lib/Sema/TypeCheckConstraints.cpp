@@ -3118,8 +3118,12 @@ Expr *TypeChecker::coerceToRValue(Expr *expr,
   }
 
   // Load lvalues.
-  if (exprTy->is<LValueType>())
-    return addImplicitLoadExpr(expr, getType, setType);
+  if (auto lvalue = exprTy->getAs<LValueType>()) {
+    expr->propagateLValueAccessKind(AccessKind::Read, getType);
+    auto result = new (Context) LoadExpr(expr, lvalue->getObjectType());
+    setType(result, lvalue->getObjectType());
+    return result;
+  }
 
   // Walk into parenthesized expressions to update the subexpression.
   if (auto paren = dyn_cast<IdentityExpr>(expr)) {

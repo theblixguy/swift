@@ -1761,6 +1761,24 @@ public:
       PrintWithColorRAII(OS, ExprModifierColor) << " implicit";
     PrintWithColorRAII(OS, TypeColor) << " type='" << GetTypeOfExpr(E) << '\'';
 
+    if (E->hasLValueAccessKind()) {
+      auto accessKindToAccessorKind = [&](AccessKind kind) {
+        switch (kind) {
+          case swift::AccessKind::Read:
+            return AccessorKind::Get;
+            break;
+          case swift::AccessKind::Write:
+            return AccessorKind::Set;
+            break;
+          case swift::AccessKind::ReadWrite:
+            return AccessorKind::Modify;
+            break;
+        }
+      };
+      PrintWithColorRAII(OS, ExprModifierColor)
+        << " accessKind=" << getAccessorKindString(accessKindToAccessorKind(E->getLValueAccessKind()));
+    }
+
     // If we have a source range and an ASTContext, print the source range.
     if (auto Ty = GetTypeOfExpr(E)) {
       auto &Ctx = Ty->getASTContext();

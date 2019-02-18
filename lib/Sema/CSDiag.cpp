@@ -1597,6 +1597,7 @@ namespace {
           }
           
           expr->setType(nullptr);
+          expr->clearLValueAccessKind();
 
           return { true, expr };
         }

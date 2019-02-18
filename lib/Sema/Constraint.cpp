@@ -432,6 +432,8 @@ StringRef swift::constraints::getName(ConversionRestrictionKind kind) {
     return "[deep equality]";
   case ConversionRestrictionKind::Superclass:
     return "[superclass]";
+  case ConversionRestrictionKind::LValueToRValue:
+    return "[lvalue-to-rvalue]";
   case ConversionRestrictionKind::Existential:
     return "[existential]";
   case ConversionRestrictionKind::MetatypeToExistentialMetatype:

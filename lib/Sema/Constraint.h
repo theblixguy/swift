@@ -192,6 +192,8 @@ enum class ConversionRestrictionKind {
   StringToPointer,
   /// Pointer-to-pointer conversion.
   PointerToPointer,
+  /// Lvalue-to-rvalue conversion.
+  LValueToRValue,
   /// Value to existential value conversion, or existential erasure.
   Existential,
   /// Metatype to existential metatype conversion.

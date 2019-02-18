@@ -1339,7 +1339,6 @@ static void synthesizeLazySetterBody(AbstractFunctionDecl *fn, void *context) {
 
 void swift::completeLazyVarImplementation(VarDecl *VD) {
   auto &Context = VD->getASTContext();
-
   assert(VD->getAttrs().hasAttribute<LazyAttr>());
   assert(VD->getReadImpl() == ReadImplKind::Get);
   assert(VD->getWriteImpl() == WriteImplKind::Set);

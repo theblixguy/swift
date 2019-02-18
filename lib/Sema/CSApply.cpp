@@ -230,6 +230,22 @@ getImplicitMemberReferenceAccessSemantics(Expr *base, VarDecl *member,
 /// This extends functionality of `Expr::isTypeReference` with
 /// support for `UnresolvedDotExpr` and `UnresolvedMemberExpr`.
 /// This method could be used on not yet fully type-checked AST.
+void ConstraintSystem::propagateLValueAccessKind(Expr *E, AccessKind accessKind,
+                                                 bool isShallow,
+                                                 bool allowOverwrite) {
+  // If solver is set up in "shallow" mode we expect that some of the
+  // sub-expressions are already type-checked which means that they
+  // already have access kind set.
+  if (isShallow && E->hasLValueAccessKind() && !allowOverwrite)
+    return;
+
+  E->propagateLValueAccessKind(accessKind,
+                               [&](Expr *E) -> Type {
+                                 return getType(E);
+                               },
+                               allowOverwrite);
+}
+
 bool ConstraintSystem::isTypeReference(const Expr *E) {
   return E->isTypeReference(
       [&](const Expr *E) -> Type { return simplifyType(getType(E)); },
@@ -354,6 +370,7 @@ namespace {
     DeclContext *dc;
     const Solution &solution;
     bool SuppressDiagnostics;
+    bool IsShallow;
 
     /// Recognize used conformances from an imported type when we must emit
     /// the witness table.
@@ -792,6 +809,16 @@ namespace {
           record.OpaqueValue = nullptr;
         }
       }
+
+      // If the opaque value has an l-value access kind, then
+      // the OpenExistentialExpr isn't making a derived l-value, which
+      // means this is our only chance to propagate the l-value access kind
+      // down to the original existential value.  Otherwise, propagateLVAK
+      // will handle this.
+      if (record.OpaqueValue && record.OpaqueValue->hasLValueAccessKind())
+        cs.propagateLValueAccessKind(record.ExistentialValue,
+                                     record.OpaqueValue->getLValueAccessKind(),
+                                     IsShallow);
 
       // Form the open-existential expression.
       result = new (tc.Context) OpenExistentialExpr(
@@ -1715,9 +1742,9 @@ namespace {
     
   public:
     ExprRewriter(ConstraintSystem &cs, const Solution &solution,
-                 bool suppressDiagnostics)
+                 bool suppressDiagnostics, bool shallow = false)
         : cs(cs), dc(cs.DC), solution(solution),
-          SuppressDiagnostics(suppressDiagnostics) {}
+          SuppressDiagnostics(suppressDiagnostics), IsShallow(shallow) {}
 
     ConstraintSystem &getConstraintSystem() const { return cs; }
 
@@ -3046,6 +3073,13 @@ namespace {
     }
 
     Expr *visitInOutExpr(InOutExpr *expr) {
+      // The default assumption is that inouts are read-write.  It's easier
+      // to do this unconditionally here and then overwrite in the exception
+      // case (when we turn the inout into an UnsafePointer) than to try to
+      // discover that we're in that case right now.
+      if (!cs.getType(expr->getSubExpr())->is<UnresolvedType>())
+        cs.propagateLValueAccessKind(expr->getSubExpr(), AccessKind::ReadWrite,
+                                     IsShallow);
       auto objectTy = cs.getType(expr->getSubExpr())->getRValueType();
 
       // The type is simply inout of whatever the lvalue's object type was.
@@ -3766,6 +3800,8 @@ namespace {
     Expr *visitAssignExpr(AssignExpr *expr) {
       // Convert the source to the simplified destination type.
       auto destTy = simplifyType(cs.getType(expr->getDest()));
+      cs.propagateLValueAccessKind(expr->getDest(), AccessKind::Write,
+                                   IsShallow);
       auto locator =
         ConstraintLocatorBuilder(cs.getConstraintLocator(expr->getSrc()));
       Expr *src = coerceToType(expr->getSrc(), destTy->getRValueType(), locator);
@@ -4084,6 +4120,11 @@ namespace {
             .highlight(subExpr->getSourceRange());
           tc.diagnose(var, diag::decl_declared_here, var->getFullName());
           return E;
+        }
+
+        if (cs.getType(subExpr)->hasLValueType()) {
+          // Treat this like a read of the property.
+          cs.propagateLValueAccessKind(subExpr, AccessKind::Read, IsShallow);
         }
 
         // Check that we requested a property getter or setter.
@@ -6335,6 +6376,32 @@ Expr *ExprRewriter::coerceToType(Expr *expr, Type toType,
     case ConversionRestrictionKind::ExistentialMetatypeToMetatype:
       return coerceSuperclass(expr, toType, locator);
 
+    case ConversionRestrictionKind::LValueToRValue: {
+      if (toType->is<TupleType>() || fromType->is<TupleType>())
+        break;
+
+      // Load from the lvalue. If we're loading the result of a force,
+      // swap the order so that we load first and force the result.
+      cs.propagateLValueAccessKind(expr, AccessKind::Read, IsShallow);
+      if (auto *forceExpr = dyn_cast<ForceValueExpr>(expr)) {
+        fromType = cs.getType(forceExpr->getSubExpr())->getRValueType();
+        auto *loadExpr = cs.cacheType(
+            new (tc.Context) LoadExpr(forceExpr->getSubExpr(), fromType));
+        auto *newForceValue = new (tc.Context)
+            ForceValueExpr(loadExpr, forceExpr->getLoc(),
+                           forceExpr->isForceOfImplicitlyUnwrappedOptional());
+        cs.setType(newForceValue,
+                   cs.getType(loadExpr)->getOptionalObjectType());
+        expr = newForceValue;
+      } else {
+        expr = cs.cacheType(new (tc.Context)
+                                LoadExpr(expr, fromType->getRValueType()));
+      }
+
+      // Coerce the result.
+      return coerceToType(expr, toType, locator);
+    }
+
     case ConversionRestrictionKind::Existential:
     case ConversionRestrictionKind::MetatypeToExistentialMetatype:
       return coerceExistential(expr, toType, locator);
@@ -6419,6 +6486,13 @@ Expr *ExprRewriter::coerceToType(Expr *expr, Type toType,
       PointerTypeKind pointerKind;
       auto toEltType = unwrappedTy->getAnyPointerElementType(pointerKind);
       assert(toEltType && "not a pointer type?"); (void) toEltType;
+      if (pointerKind == PTK_UnsafePointer) {
+        // Overwrite the l-value access kind to be read-only if we're
+        // converting to a non-mutable pointer type.
+        auto *E = cast<InOutExpr>(expr->getValueProvidingExpr())->getSubExpr();
+        cs.propagateLValueAccessKind(E, AccessKind::Read, IsShallow,
+                                     /*overwrite*/ true);
+      }
 
       tc.requirePointerArgumentIntrinsics(expr->getLoc());
       Expr *result =
@@ -6524,13 +6598,54 @@ Expr *ExprRewriter::coerceToType(Expr *expr, Type toType,
       // In an 'inout' operator like "i += 1", the operand is converted from
       // an implicit lvalue to an inout argument.
       assert(toIO->getObjectType()->isEqual(fromLValue->getObjectType()));
+      cs.propagateLValueAccessKind(expr, AccessKind::ReadWrite, IsShallow);
       return cs.cacheType(new (tc.Context)
                               InOutExpr(expr->getStartLoc(), expr,
                                         toIO->getObjectType(),
                                         /*isImplicit*/ true));
     }
 
-    return coerceToType(addImplicitLoadExpr(cs, expr), toType, locator);
+    // If we're actually turning this into an lvalue tuple element, don't
+    // load.
+    bool performLoad = true;
+    if (auto toTuple = toType->getAs<TupleType>()) {
+      auto getElementForScalarInitSimple =
+      [](const TupleType *tupleTy) -> Optional<unsigned> {
+        Optional<unsigned> result = None;
+        for (unsigned i = 0, e = tupleTy->getNumElements(); i != e; ++i) {
+          // If we already saw a non-vararg field, then we have more than
+          // one candidate field.
+          if (result.hasValue()) {
+            // Vararg fields are okay; they'll just end up being empty.
+            if (tupleTy->getElement(i).isVararg())
+              continue;
+            
+            // Give up.
+            return None;
+          }
+          
+          // Otherwise, remember this field number.
+          result = i;
+        }
+        
+        return result;
+      };
+      
+      auto scalarIdx = getElementForScalarInitSimple(toTuple);
+      if (scalarIdx.hasValue() && scalarIdx.getValue() >= 0 &&
+          toTuple->getElement(scalarIdx.getValue()).isInOut())
+        performLoad = false;
+    }
+
+    if (performLoad) {
+      // Load from the lvalue.
+      cs.propagateLValueAccessKind(expr, AccessKind::Read, IsShallow);
+      expr = cs.cacheType(new (tc.Context)
+                              LoadExpr(expr, fromLValue->getObjectType()));
+
+      // Coerce the result.
+      return coerceToType(expr, toType, locator);
+    }
   }
 
   // Coercions to tuple type.
@@ -6768,6 +6883,7 @@ ExprRewriter::coerceObjectArgumentToType(Expr *expr,
 
   // Use InOutExpr to convert it to an explicit inout argument for the
   // receiver.
+  cs.propagateLValueAccessKind(expr, AccessKind::ReadWrite, IsShallow);
   return cs.cacheType(new (ctx) InOutExpr(expr->getStartLoc(), expr, 
                                           toInOutTy->getInOutObjectType(),
                                           /*isImplicit*/ true));
