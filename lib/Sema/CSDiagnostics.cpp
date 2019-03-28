@@ -2353,19 +2353,19 @@ bool InaccessibleMemberFailure::diagnoseAsError() {
   return true;
 }
 
-bool ImplicitCoercionToAnyFailure::diagnoseAsError() {
+bool ImplicitCoercionToAnyWarning::diagnoseAsError() {
   auto E = getAnchor();
   auto &TC = getTypeChecker();
   auto &CS = getConstraintSystem();
 
   auto locator = CS.getConstraintLocator(E, ConstraintLocator::Member);
-  auto resolvedOverload = getResolvedOverload(locator);
+  auto overloadChoice = getOverloadChoiceIfAvailable(locator);
 
-  if (!resolvedOverload) {
+  if (!overloadChoice.hasValue()) {
     return true;
   }
 
-  auto decl = resolvedOverload->Choice.getDecl();
+  auto decl = overloadChoice->choice.getDecl();
 
   auto isOptionalToAnyCoercion = [&](Type srcType, Type destType,
                                      size_t &difference) -> bool {

@@ -398,7 +398,7 @@ AllowInaccessibleMember::create(ConstraintSystem &cs, ValueDecl *member,
 }
 
 bool WarnImplicitCoercionToAny::diagnose(Expr *root, bool asNote) const {
-  ImplicitCoercionToAnyFailure failure(root, getConstraintSystem(), FromType,
+  ImplicitCoercionToAnyWarning failure(root, getConstraintSystem(), FromType,
                                        ToType, getLocator());
   return failure.diagnose(asNote);
 }
