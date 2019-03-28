@@ -983,6 +983,19 @@ public:
   bool diagnoseAsError() override;
 };
 
+class ImplicitCoercionToAnyFailure final : public FailureDiagnostic {
+  Type FromType;
+  Type ToType;
+
+public:
+  ImplicitCoercionToAnyFailure(Expr *root, ConstraintSystem &cs, Type fromType,
+                               Type toType, ConstraintLocator *locator)
+      : FailureDiagnostic(root, cs, locator), FromType(fromType),
+        ToType(toType) {}
+
+  bool diagnoseAsError() override;
+};
+
 } // end namespace constraints
 } // end namespace swift
 

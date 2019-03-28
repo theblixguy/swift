@@ -3615,51 +3615,6 @@ static void diagnoseUnintendedOptionalBehavior(TypeChecker &TC, const Expr *E,
     void visitErasureExpr(ErasureExpr *E, OptionalToAnyCoercion coercion) {
       if (coercion.shouldSuppressDiagnostic())
         return;
-
-      auto subExpr = E->getSubExpr();
-
-      // Look through any BindOptionalExprs, as the coercion may have started
-      // from a higher level of optionality.
-      while (auto *bindExpr = dyn_cast<BindOptionalExpr>(subExpr))
-        subExpr = bindExpr->getSubExpr();
-
-      // Do not warn on coercions from implicitly unwrapped optionals
-      // for Swift versions less than 5.
-      if (!TC.Context.isSwiftVersionAtLeast(5) &&
-          hasImplicitlyUnwrappedResult(subExpr))
-        return;
-
-      // We're taking the source type from the child of any BindOptionalExprs,
-      // and the destination from the parent of any
-      // (InjectIntoOptional/OptionalEvaluation)Exprs in order to take into
-      // account any bindings that need to be done for nested Optional-to-Any
-      // coercions, e.g Int??? to Any?.
-      auto srcType = subExpr->getType();
-      auto destType = coercion.DestType;
-
-      size_t optionalityDifference = 0;
-      if (!isOptionalToAnyCoercion(srcType, destType, optionalityDifference))
-        return;
-
-      TC.diagnose(subExpr->getStartLoc(), diag::optional_to_any_coercion,
-                  /* from */ srcType, /* to */ destType)
-        .highlight(subExpr->getSourceRange());
-
-      if (optionalityDifference == 1) {
-        TC.diagnose(subExpr->getLoc(), diag::default_optional_to_any)
-          .highlight(subExpr->getSourceRange())
-          .fixItInsertAfter(subExpr->getEndLoc(), " ?? <#default value#>");
-      }
-
-      SmallString<4> forceUnwrapString;
-      for (size_t i = 0; i < optionalityDifference; i++)
-        forceUnwrapString += "!";
-
-      TC.diagnose(subExpr->getLoc(), diag::force_optional_to_any)
-        .highlight(subExpr->getSourceRange())
-        .fixItInsertAfter(subExpr->getEndLoc(), forceUnwrapString);
-
-      emitSilenceOptionalAnyWarningWithCoercion(subExpr, destType);
     }
 
     void visitCollectionUpcastExpr(CollectionUpcastConversionExpr *E,

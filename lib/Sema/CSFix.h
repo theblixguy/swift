@@ -136,6 +136,9 @@ enum class FixKind : uint8_t {
   /// If there is a matching inaccessible member - allow it as if there
   /// no access control.
   AllowInaccessibleMember,
+
+  /// Allow implicit coersion from optional to any
+  AllowImplicitCoercionToAny,
 };
 
 class ConstraintFix {
@@ -735,6 +738,28 @@ public:
   static AllowInaccessibleMember *create(ConstraintSystem &cs,
                                          ValueDecl *member,
                                          ConstraintLocator *locator);
+};
+
+class AllowImplicitCoercionToAny final : public ConstraintFix {
+  Type FromType;
+  Type ToType;
+
+  AllowImplicitCoercionToAny(ConstraintSystem &cs, Type fromType, Type toType,
+                             ConstraintLocator *locator)
+      : ConstraintFix(cs, FixKind::AllowImplicitCoercionToAny, locator,
+                      /*warning=*/true),
+        FromType(fromType), ToType(toType) {}
+
+public:
+  std::string getName() const override {
+    return "allow implicit coercion from optional to any";
+  }
+
+  bool diagnose(Expr *root, bool asNote = false) const override;
+
+  static AllowImplicitCoercionToAny *create(ConstraintSystem &cs, Type fromType,
+                                            Type toType,
+                                            ConstraintLocator *locator);
 };
 
 } // end namespace constraints
