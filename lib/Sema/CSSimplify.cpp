@@ -2407,6 +2407,12 @@ ConstraintSystem::matchTypes(Type type1, Type type2, ConstraintKind kind,
       // Penalize conversions to Any, and disallow conversions of
       // noescape functions to Any.
       if (kind >= ConstraintKind::Conversion && type2->isAny()) {
+        if (type1->getOptionalObjectType()) {
+          auto *fix = WarnImplicitCoercionToAny::create(
+              *this, type1, type2, getConstraintLocator(locator));
+          recordFix(fix);
+        }
+
         if (auto *fnTy = type1->getAs<FunctionType>()) {
           if (fnTy->isNoEscape()) {
             if (shouldAttemptFixes()) {
@@ -2695,14 +2701,6 @@ ConstraintSystem::matchTypes(Type type1, Type type2, ConstraintKind kind,
                             ConstraintLocator::LValueConversion));
       }
     }
-  }
-
-  if (type1->getOptionalObjectType() && type2->isAny()) {
-    auto *fix = AllowImplicitCoercionToAny::create(
-        *this, type1, type2, getConstraintLocator(locator));
-    recordFix(fix);
-    return matchTypes(type1->lookThroughAllOptionalTypes(), type2,
-                      ConstraintKind::Conversion, flags, locator);
   }
 
   // Attempt fixes iff it's allowed, both types are concrete and
@@ -6220,7 +6218,7 @@ ConstraintSystem::SolutionKind ConstraintSystem::simplifyFixConstraint(
   case FixKind::AllowClosureParameterDestructuring:
   case FixKind::MoveOutOfOrderArgument:
   case FixKind::AllowInaccessibleMember:
-  case FixKind::AllowImplicitCoercionToAny:
+  case FixKind::WarnImplicitCoercionToAny:
     llvm_unreachable("handled elsewhere");
   }
 

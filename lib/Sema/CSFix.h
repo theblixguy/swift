@@ -137,8 +137,8 @@ enum class FixKind : uint8_t {
   /// no access control.
   AllowInaccessibleMember,
 
-  /// Allow implicit coersion from optional to any
-  AllowImplicitCoercionToAny,
+  /// Warn when we do an implicit coercion from Optional<T> to Any
+  WarnImplicitCoercionToAny,
 };
 
 class ConstraintFix {
@@ -740,26 +740,26 @@ public:
                                          ConstraintLocator *locator);
 };
 
-class AllowImplicitCoercionToAny final : public ConstraintFix {
+class WarnImplicitCoercionToAny final : public ConstraintFix {
   Type FromType;
   Type ToType;
 
-  AllowImplicitCoercionToAny(ConstraintSystem &cs, Type fromType, Type toType,
-                             ConstraintLocator *locator)
-      : ConstraintFix(cs, FixKind::AllowImplicitCoercionToAny, locator,
+  WarnImplicitCoercionToAny(ConstraintSystem &cs, Type fromType, Type toType,
+                            ConstraintLocator *locator)
+      : ConstraintFix(cs, FixKind::WarnImplicitCoercionToAny, locator,
                       /*warning=*/true),
         FromType(fromType), ToType(toType) {}
 
 public:
   std::string getName() const override {
-    return "allow implicit coercion from optional to any";
+    return "warn if doing an implicit coercion from optional to any";
   }
 
   bool diagnose(Expr *root, bool asNote = false) const override;
 
-  static AllowImplicitCoercionToAny *create(ConstraintSystem &cs, Type fromType,
-                                            Type toType,
-                                            ConstraintLocator *locator);
+  static WarnImplicitCoercionToAny *create(ConstraintSystem &cs, Type fromType,
+                                           Type toType,
+                                           ConstraintLocator *locator);
 };
 
 } // end namespace constraints

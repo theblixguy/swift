@@ -397,15 +397,15 @@ AllowInaccessibleMember::create(ConstraintSystem &cs, ValueDecl *member,
   return new (cs.getAllocator()) AllowInaccessibleMember(cs, member, locator);
 }
 
-bool AllowImplicitCoercionToAny::diagnose(Expr *root, bool asNote) const {
+bool WarnImplicitCoercionToAny::diagnose(Expr *root, bool asNote) const {
   ImplicitCoercionToAnyFailure failure(root, getConstraintSystem(), FromType,
                                        ToType, getLocator());
   return failure.diagnose(asNote);
 }
 
-AllowImplicitCoercionToAny *
-AllowImplicitCoercionToAny::create(ConstraintSystem &cs, Type fromType,
-                                   Type toType, ConstraintLocator *locator) {
+WarnImplicitCoercionToAny *
+WarnImplicitCoercionToAny::create(ConstraintSystem &cs, Type fromType,
+                                  Type toType, ConstraintLocator *locator) {
   return new (cs.getAllocator())
-      AllowImplicitCoercionToAny(cs, fromType, toType, locator);
+      WarnImplicitCoercionToAny(cs, fromType, toType, locator);
 }

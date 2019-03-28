@@ -2355,53 +2355,17 @@ bool InaccessibleMemberFailure::diagnoseAsError() {
 
 bool ImplicitCoercionToAnyFailure::diagnoseAsError() {
   auto E = getAnchor();
-  auto subExpr = E->getValueProvidingExpr();
   auto &TC = getTypeChecker();
-  Decl *decl = nullptr;
+  auto &CS = getConstraintSystem();
 
-  if (auto *UDE = dyn_cast<UnresolvedDotExpr>(E)) {
-    auto name = UDE->getName();
-    auto parent = getDC()->getParentForLookup();
-    SmallVector<ValueDecl *, 4> lookupResults;
-    parent->lookupQualified(FromType->lookThroughAllOptionalTypes(), name,
-                            NL_QualifiedDefault, nullptr, lookupResults);
-    if (!lookupResults.empty()) {
-      decl = lookupResults.front();
-    }
+  auto locator = CS.getConstraintLocator(E, ConstraintLocator::Member);
+  auto resolvedOverload = getResolvedOverload(locator);
+
+  if (!resolvedOverload) {
+    return true;
   }
 
-  auto hasImplicitlyUnwrappedResult = [&](Expr *E) -> bool {
-    auto getDeclForExpr = [&](Expr *E) -> ValueDecl * {
-      if (auto *call = dyn_cast<CallExpr>(E))
-        E = call->getDirectCallee();
-
-      if (auto *subscript = dyn_cast<SubscriptExpr>(E)) {
-        if (subscript->hasDecl())
-          return subscript->getDecl().getDecl();
-
-        return nullptr;
-      }
-
-      if (auto *memberRef = dyn_cast<MemberRefExpr>(E))
-        return memberRef->getMember().getDecl();
-      if (auto *declRef = dyn_cast<DeclRefExpr>(E))
-        return declRef->getDecl();
-      if (auto *apply = dyn_cast<ApplyExpr>(E))
-        return apply->getCalledValue();
-
-      return nullptr;
-    };
-
-    // Look through implicit conversions like loads, derived-to-base
-    // conversion, etc.
-    if (auto *ICE = dyn_cast<ImplicitConversionExpr>(E))
-      E = ICE->getSubExpr();
-
-    auto *decl = getDeclForExpr(E);
-
-    return decl &&
-           decl->getAttrs().hasAttribute<ImplicitlyUnwrappedOptionalAttr>();
-  };
+  auto decl = resolvedOverload->Choice.getDecl();
 
   auto isOptionalToAnyCoercion = [&](Type srcType, Type destType,
                                      size_t &difference) -> bool {
@@ -2433,15 +2397,19 @@ bool ImplicitCoercionToAnyFailure::diagnoseAsError() {
         .fixItInsertAfter(E->getEndLoc(), coercionString);
   };
 
+  auto hasImplicitlyUnwrappedAttr = [&](Decl *decl) -> bool {
+    return decl &&
+           decl->getAttrs().hasAttribute<ImplicitlyUnwrappedOptionalAttr>();
+  };
+
   // Look through any BindOptionalExprs, as the coercion may have started
   // from a higher level of optionality.
-  while (auto *bindExpr = dyn_cast<BindOptionalExpr>(subExpr))
-    subExpr = bindExpr->getSubExpr();
+  while (auto *bindExpr = dyn_cast<BindOptionalExpr>(E))
+    E = bindExpr->getSubExpr();
 
   // Do not warn on coercions from implicitly unwrapped optionals
   // for Swift versions less than 5.
-  if (!TC.Context.isSwiftVersionAtLeast(5) &&
-      hasImplicitlyUnwrappedResult(subExpr))
+  if (!TC.Context.isSwiftVersionAtLeast(5) && hasImplicitlyUnwrappedAttr(decl))
     return true;
 
   // We're taking the source type from the child of any BindOptionalExprs,
@@ -2452,8 +2420,7 @@ bool ImplicitCoercionToAnyFailure::diagnoseAsError() {
   auto srcType = FromType;
   auto destType = ToType;
 
-  if (decl &&
-      decl->getAttrs().hasAttribute<ImplicitlyUnwrappedOptionalAttr>()) {
+  if (hasImplicitlyUnwrappedAttr(decl)) {
     return true;
   }
 
@@ -2461,24 +2428,24 @@ bool ImplicitCoercionToAnyFailure::diagnoseAsError() {
   if (!isOptionalToAnyCoercion(srcType, destType, optionalityDifference))
     return true;
 
-  emitDiagnostic(subExpr->getStartLoc(), diag::optional_to_any_coercion,
+  emitDiagnostic(E->getStartLoc(), diag::optional_to_any_coercion,
                  /* from */ srcType, /* to */ destType)
-      .highlight(subExpr->getSourceRange());
+      .highlight(E->getSourceRange());
 
   if (optionalityDifference == 1) {
-    emitDiagnostic(subExpr->getLoc(), diag::default_optional_to_any)
-        .highlight(subExpr->getSourceRange())
-        .fixItInsertAfter(subExpr->getEndLoc(), " ?? <#default value#>");
+    emitDiagnostic(E->getLoc(), diag::default_optional_to_any)
+        .highlight(E->getSourceRange())
+        .fixItInsertAfter(E->getEndLoc(), " ?? <#default value#>");
   }
 
   SmallString<4> forceUnwrapString;
   for (size_t i = 0; i < optionalityDifference; i++)
     forceUnwrapString += "!";
 
-  emitDiagnostic(subExpr->getLoc(), diag::force_optional_to_any)
-      .highlight(subExpr->getSourceRange())
-      .fixItInsertAfter(subExpr->getEndLoc(), forceUnwrapString);
+  emitDiagnostic(E->getLoc(), diag::force_optional_to_any)
+      .highlight(E->getSourceRange())
+      .fixItInsertAfter(E->getEndLoc(), forceUnwrapString);
 
-  emitSilenceOptionalAnyWarningWithCoercion(subExpr, destType);
+  emitSilenceOptionalAnyWarningWithCoercion(E, destType);
   return true;
 }
