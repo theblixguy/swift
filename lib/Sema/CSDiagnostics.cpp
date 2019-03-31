@@ -101,6 +101,52 @@ Expr *FailureDiagnostic::getArgumentExprFor(Expr *anchor) const {
   return nullptr;
 }
 
+ConstraintLocator *
+FailureDiagnostic::getConstraintLocatorFor(Expr *expr) const {
+  auto locator = CS.getConstraintLocator(expr);
+
+  if (isa<DeclRefExpr>(expr)) {
+    locator = CS.getConstraintLocator(expr);
+  } else if (isa<UnresolvedDeclRefExpr>(expr)) {
+    locator = CS.getConstraintLocator(expr);
+  } else if (isa<SubscriptExpr>(expr)) {
+    locator = CS.getConstraintLocator(expr, ConstraintLocator::SubscriptMember);
+  } else if (isa<UnresolvedDotExpr>(expr)) {
+    auto UDE = dyn_cast<UnresolvedDotExpr>(expr);
+    if (isa<ConstructorRefCallExpr>(UDE->getBase())) {
+      locator =
+          CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
+    } else {
+      locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
+    }
+  } else if (isa<MemberRefExpr>(expr)) {
+    auto MRE = dyn_cast<MemberRefExpr>(expr);
+    if (isa<ConstructorRefCallExpr>(MRE->getBase())) {
+      locator =
+          CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
+    } else {
+      locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
+    }
+  } else if (isa<CallExpr>(expr)) {
+    auto CE = cast<CallExpr>(expr);
+    auto Fn = CE->getFn();
+    locator = CS.getConstraintLocator(Fn, ConstraintLocator::FunctionResult);
+  } else if (isa<ApplyExpr>(expr)) {
+    auto AE = cast<ApplyExpr>(expr);
+    auto Fn = AE->getFn();
+    locator = CS.getConstraintLocator(Fn, ConstraintLocator::ApplyFunction);
+  } else if (isa<UnresolvedMemberExpr>(expr)) {
+    locator = CS.getConstraintLocator(expr, ConstraintLocator::MemberRefBase);
+  } else if (isa<OverloadedDeclRefExpr>(expr)) {
+    locator = CS.getConstraintLocator(expr);
+  } else {
+    // Fallback to locator without any specific path element
+    locator = CS.getConstraintLocator(expr);
+  }
+
+  return locator;
+}
+
 Type RequirementFailure::getOwnerType() const {
   return getType(getRawAnchor())
       ->getInOutObjectType()
@@ -2354,11 +2400,10 @@ bool InaccessibleMemberFailure::diagnoseAsError() {
 }
 
 bool ImplicitCoercionToAnyWarning::diagnoseAsError() {
-  auto E = getAnchor();
+  auto E = getAnchor()->getSemanticsProvidingExpr();
   auto &TC = getTypeChecker();
-  auto &CS = getConstraintSystem();
 
-  auto locator = CS.getConstraintLocator(E, ConstraintLocator::Member);
+  auto locator = getConstraintLocatorFor(E);
   auto overloadChoice = getOverloadChoiceIfAvailable(locator);
 
   if (!overloadChoice.hasValue()) {

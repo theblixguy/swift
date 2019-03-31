@@ -155,6 +155,9 @@ protected:
   /// reference or subscript, nullptr otherwise.
   Expr *getArgumentExprFor(Expr *anchor) const;
 
+  /// \returns A constraint locator for the given expression.
+  ConstraintLocator *getConstraintLocatorFor(Expr *expr) const;
+
 private:
   /// Compute anchor expression associated with current diagnostic.
   std::pair<Expr *, bool> computeAnchor() const;
