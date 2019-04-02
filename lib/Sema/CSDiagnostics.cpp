@@ -101,21 +101,19 @@ Expr *FailureDiagnostic::getArgumentExprFor(Expr *anchor) const {
   return nullptr;
 }
 
-ConstraintLocator *
-FailureDiagnostic::getConstraintLocatorFor(Expr *expr) const {
+Optional<SelectedOverload>
+FailureDiagnostic::getOverloadChoiceIfAvailable(Expr *expr) const {
   auto locator = CS.getConstraintLocator(expr);
+  auto &TC = getTypeChecker();
 
   if (isa<DeclRefExpr>(expr)) {
-    locator = CS.getConstraintLocator(expr);
-  } else if (isa<UnresolvedDeclRefExpr>(expr)) {
     locator = CS.getConstraintLocator(expr);
   } else if (isa<SubscriptExpr>(expr)) {
     locator = CS.getConstraintLocator(expr, ConstraintLocator::SubscriptMember);
   } else if (isa<UnresolvedDotExpr>(expr)) {
     auto UDE = dyn_cast<UnresolvedDotExpr>(expr);
-    if (isa<ConstructorRefCallExpr>(UDE->getBase())) {
-      locator =
-          CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
+    if (TC.getSelfForInitDelegationInConstructor(getDC(), UDE)) {
+      CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
     } else {
       locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
     }
@@ -129,14 +127,14 @@ FailureDiagnostic::getConstraintLocatorFor(Expr *expr) const {
     }
   } else if (isa<CallExpr>(expr)) {
     auto CE = cast<CallExpr>(expr);
-    auto Fn = CE->getFn();
-    locator = CS.getConstraintLocator(Fn, ConstraintLocator::FunctionResult);
+    return getOverloadChoiceIfAvailable(CE->getFn());
   } else if (isa<ApplyExpr>(expr)) {
     auto AE = cast<ApplyExpr>(expr);
     auto Fn = AE->getFn();
     locator = CS.getConstraintLocator(Fn, ConstraintLocator::ApplyFunction);
   } else if (isa<UnresolvedMemberExpr>(expr)) {
-    locator = CS.getConstraintLocator(expr, ConstraintLocator::MemberRefBase);
+    locator =
+        CS.getConstraintLocator(expr, ConstraintLocator::UnresolvedMember);
   } else if (isa<OverloadedDeclRefExpr>(expr)) {
     locator = CS.getConstraintLocator(expr);
   } else {
@@ -144,7 +142,7 @@ FailureDiagnostic::getConstraintLocatorFor(Expr *expr) const {
     locator = CS.getConstraintLocator(expr);
   }
 
-  return locator;
+  return getOverloadChoiceIfAvailable(locator);
 }
 
 Type RequirementFailure::getOwnerType() const {
