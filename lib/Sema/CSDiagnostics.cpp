@@ -130,8 +130,7 @@ FailureDiagnostic::getOverloadChoiceIfAvailable(Expr *expr) const {
     return getOverloadChoiceIfAvailable(CE->getFn());
   } else if (isa<ApplyExpr>(expr)) {
     auto AE = cast<ApplyExpr>(expr);
-    auto Fn = AE->getFn();
-    locator = CS.getConstraintLocator(Fn, ConstraintLocator::ApplyFunction);
+    return getOverloadChoiceIfAvailable(AE->getFn());
   } else if (isa<UnresolvedMemberExpr>(expr)) {
     locator =
         CS.getConstraintLocator(expr, ConstraintLocator::UnresolvedMember);
