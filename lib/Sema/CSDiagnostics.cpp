@@ -113,7 +113,7 @@ FailureDiagnostic::getOverloadChoiceIfAvailable(Expr *expr) const {
   } else if (isa<UnresolvedDotExpr>(expr)) {
     auto UDE = dyn_cast<UnresolvedDotExpr>(expr);
     if (TC.getSelfForInitDelegationInConstructor(getDC(), UDE)) {
-      CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
+      locator = CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
     } else {
       locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
     }
@@ -2401,8 +2401,7 @@ bool ImplicitCoercionToAnyWarning::diagnoseAsError() {
   auto E = getAnchor()->getSemanticsProvidingExpr();
   auto &TC = getTypeChecker();
 
-  auto locator = getConstraintLocatorFor(E);
-  auto overloadChoice = getOverloadChoiceIfAvailable(locator);
+  auto overloadChoice = getOverloadChoiceIfAvailable(E);
 
   if (!overloadChoice.hasValue()) {
     return true;
