@@ -118,13 +118,7 @@ FailureDiagnostic::getOverloadChoiceIfAvailable(Expr *expr) const {
       locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
     }
   } else if (isa<MemberRefExpr>(expr)) {
-    auto MRE = dyn_cast<MemberRefExpr>(expr);
-    if (isa<ConstructorRefCallExpr>(MRE->getBase())) {
-      locator =
-          CS.getConstraintLocator(expr, ConstraintLocator::ConstructorMember);
-    } else {
-      locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
-    }
+    locator = CS.getConstraintLocator(expr, ConstraintLocator::Member);
   } else if (isa<CallExpr>(expr)) {
     auto CE = cast<CallExpr>(expr);
     return getOverloadChoiceIfAvailable(CE->getFn());
@@ -2453,6 +2447,10 @@ bool ImplicitCoercionToAnyWarning::diagnoseAsError() {
   if (!TC.Context.isSwiftVersionAtLeast(5) && hasImplicitlyUnwrappedAttr(decl))
     return true;
 
+  if (hasImplicitlyUnwrappedAttr(decl)) {
+    return true;
+  }
+
   // We're taking the source type from the child of any BindOptionalExprs,
   // and the destination from the parent of any
   // (InjectIntoOptional/OptionalEvaluation)Exprs in order to take into
@@ -2460,10 +2458,6 @@ bool ImplicitCoercionToAnyWarning::diagnoseAsError() {
   // coercions, e.g Int??? to Any?.
   auto srcType = FromType;
   auto destType = ToType;
-
-  if (hasImplicitlyUnwrappedAttr(decl)) {
-    return true;
-  }
 
   size_t optionalityDifference = 0;
   if (!isOptionalToAnyCoercion(srcType, destType, optionalityDifference))
