@@ -16,6 +16,7 @@
 #include "swift/AST/Decl.h"
 #include "swift/AST/DeclContext.h"
 #include "swift/AST/Expr.h"
+#include "swift/AST/GenericSignature.h"
 #include "swift/AST/Initializer.h"
 #include "swift/AST/LazyResolver.h"
 #include "swift/AST/Module.h"
@@ -194,7 +195,7 @@ namespace {
 class ExprParentFinder : public ASTWalker {
   friend class ExprContextAnalyzer;
   Expr *ChildExpr;
-  llvm::function_ref<bool(ParentTy, ParentTy)> Predicate;
+  std::function<bool(ParentTy, ParentTy)> Predicate;
 
   bool arePositionsSame(Expr *E1, Expr *E2) {
     return E1->getSourceRange().Start == E2->getSourceRange().Start &&
@@ -204,7 +205,7 @@ class ExprParentFinder : public ASTWalker {
 public:
   llvm::SmallVector<ParentTy, 5> Ancestors;
   ExprParentFinder(Expr *ChildExpr,
-                   llvm::function_ref<bool(ParentTy, ParentTy)> Predicate)
+                   std::function<bool(ParentTy, ParentTy)> Predicate)
       : ChildExpr(ChildExpr), Predicate(Predicate) {}
 
   std::pair<bool, Expr *> walkToExprPre(Expr *E) override {
@@ -267,11 +268,13 @@ public:
 static void collectPossibleCalleesByQualifiedLookup(
     DeclContext &DC, Type baseTy, DeclBaseName name,
     SmallVectorImpl<FunctionTypeAndDecl> &candidates) {
+  bool isOnMetaType = baseTy->is<AnyMetatypeType>();
 
   SmallVector<ValueDecl *, 2> decls;
   auto resolver = DC.getASTContext().getLazyResolver();
   if (!DC.lookupQualified(baseTy->getMetatypeInstanceType(), name,
-                          NL_QualifiedDefault, resolver, decls))
+                          NL_QualifiedDefault | NL_ProtocolMembers, resolver,
+                          decls))
     return;
 
   for (auto *VD : decls) {
@@ -285,16 +288,18 @@ static void collectPossibleCalleesByQualifiedLookup(
       continue;
     Type declaredMemberType = VD->getInterfaceType();
     if (VD->getDeclContext()->isTypeContext()) {
-      if (auto *FD = dyn_cast<FuncDecl>(VD)) {
-        if (!baseTy->is<AnyMetatypeType>())
+      if (isa<FuncDecl>(VD)) {
+        if (!isOnMetaType)
           declaredMemberType =
               declaredMemberType->castTo<AnyFunctionType>()->getResult();
-      }
-      if (auto *CD = dyn_cast<ConstructorDecl>(VD)) {
-        if (!baseTy->is<AnyMetatypeType>())
+      } else if (isa<ConstructorDecl>(VD)) {
+        if (!isOnMetaType)
           continue;
         declaredMemberType =
             declaredMemberType->castTo<AnyFunctionType>()->getResult();
+      } else if (isa<SubscriptDecl>(VD)) {
+        if (isOnMetaType != VD->isStatic())
+          continue;
       }
     }
 
@@ -303,8 +308,19 @@ static void collectPossibleCalleesByQualifiedLookup(
 
     if (!fnType)
       continue;
-    if (auto *AFT = fnType->getAs<AnyFunctionType>()) {
-      candidates.emplace_back(AFT, VD);
+
+    if (fnType->is<AnyFunctionType>()) {
+      auto baseInstanceTy = baseTy->getMetatypeInstanceType();
+      // If we are calling to typealias type, 
+      if (isa<SugarType>(baseInstanceTy.getPointer())) {
+        auto canBaseTy = baseInstanceTy->getCanonicalType();
+        fnType = fnType.transform([&](Type t) -> Type {
+          if (t->getCanonicalType()->isEqual(canBaseTy))
+            return baseInstanceTy;
+          return t;
+        });
+      }
+      candidates.emplace_back(fnType->castTo<AnyFunctionType>(), VD);
     }
   }
 }
@@ -617,6 +633,12 @@ class ExprContextAnalyzer {
       break;
     }
     default:
+      if (auto *AFD = dyn_cast<AbstractFunctionDecl>(D)) {
+        assert(isSingleExpressionBodyForCodeCompletion(AFD->getBody()));
+        singleExpressionBody = true;
+        recordPossibleType(getReturnTypeFromContext(AFD));
+        break;
+      }
       llvm_unreachable("Unhandled decl kind.");
     }
   }
@@ -637,6 +659,14 @@ class ExprContextAnalyzer {
     }
   }
 
+  /// Whether the given \c BraceStmt, which must be the body of a function or
+  /// closure, should be treated as a single-expression return for the purposes
+  /// of code-completion.
+  ///
+  /// We cannot use hasSingleExpressionBody, because we explicitly do not use
+  /// the single-expression-body when there is code-completion in the expression
+  /// in order to avoid a base expression affecting the type. However, now that
+  /// we've typechecked, we will take the context type into account.
   static bool isSingleExpressionBodyForCodeCompletion(BraceStmt *body) {
     return body->getNumElements() == 1 && body->getElements()[0].is<Expr *>();
   }
@@ -657,15 +687,23 @@ public:
     if (!ParsedExpr)
       return;
 
-    ExprParentFinder Finder(ParsedExpr, [](ASTWalker::ParentTy Node,
-                                           ASTWalker::ParentTy Parent) {
+    ExprParentFinder Finder(ParsedExpr, [&](ASTWalker::ParentTy Node,
+                                            ASTWalker::ParentTy Parent) {
       if (auto E = Node.getAsExpr()) {
         switch (E->getKind()) {
-        case ExprKind::Call:
+        case ExprKind::Call: {
+          // Iff the cursor is in argument position.
+          auto argsRange = cast<CallExpr>(E)->getArg()->getSourceRange();
+          return SM.rangeContains(argsRange, ParsedExpr->getSourceRange());
+        }
+        case ExprKind::Subscript: {
+          // Iff the cursor is in index position.
+          auto argsRange = cast<SubscriptExpr>(E)->getIndex()->getSourceRange();
+          return SM.rangeContains(argsRange, ParsedExpr->getSourceRange());
+        }
         case ExprKind::Binary:
         case ExprKind::PrefixUnary:
         case ExprKind::Assign:
-        case ExprKind::Subscript:
         case ExprKind::Array:
           return true;
         case ExprKind::Tuple: {
@@ -674,15 +712,9 @@ public:
                  (!isa<CallExpr>(ParentE) && !isa<SubscriptExpr>(ParentE) &&
                   !isa<BinaryExpr>(ParentE));
         }
-        case ExprKind::Closure: {
-          // Note: we cannot use hasSingleExpressionBody, because we explicitly
-          // do not use the single-expression-body when there is code-completion
-          // in the expression in order to avoid a base expression affecting
-          // the type. However, now that we've typechecked, we will take the
-          // context type into account.
+        case ExprKind::Closure:
           return isSingleExpressionBodyForCodeCompletion(
               cast<ClosureExpr>(E)->getBody());
-        }
         default:
           return false;
         }
@@ -703,6 +735,9 @@ public:
         case DeclKind::PatternBinding:
           return true;
         default:
+          if (auto *AFD = dyn_cast<AbstractFunctionDecl>(D))
+            if (auto *body = AFD->getBody())
+              return isSingleExpressionBodyForCodeCompletion(body);
           return false;
         }
       } else if (auto P = Node.getAsPattern()) {

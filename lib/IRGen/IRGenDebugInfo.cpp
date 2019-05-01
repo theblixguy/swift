@@ -191,14 +191,13 @@ public:
 
 private:
   static StringRef getFilenameFromDC(const DeclContext *DC) {
-    if (auto LF = dyn_cast<LoadedFile>(DC))
+    if (auto *LF = dyn_cast<LoadedFile>(DC))
       return LF->getFilename();
-    if (auto SF = dyn_cast<SourceFile>(DC))
+    if (auto *SF = dyn_cast<SourceFile>(DC))
       return SF->getFilename();
-    else if (auto M = dyn_cast<ModuleDecl>(DC))
+    if (auto *M = dyn_cast<ModuleDecl>(DC))
       return M->getModuleFilename();
-    else
-      return StringRef();
+    return {};
   }
 
   using DebugLoc = SILLocation::DebugLoc;
@@ -637,22 +636,28 @@ private:
     if (Val != DIModuleCache.end())
       return cast<llvm::DIModule>(Val->second);
 
+    std::string RemappedIncludePath = DebugPrefixMap.remapPath(IncludePath);
+
     // For Clang modules / PCH, create a Skeleton CU pointing to the PCM/PCH.
-    bool CreateSkeletonCU = !ASTFile.empty();
-    bool IsRootModule = !Parent;
-    if (CreateSkeletonCU && IsRootModule) {
-      llvm::DIBuilder DIB(M);
-      DIB.createCompileUnit(IGM.ObjCInterop ? llvm::dwarf::DW_LANG_ObjC
-                                            : llvm::dwarf::DW_LANG_C99,
-                            DIB.createFile(Name, IncludePath),
-                            TheCU->getProducer(), true, StringRef(), 0, ASTFile,
-                            llvm::DICompileUnit::FullDebug, Signature);
-      DIB.finalize();
+    if (!Opts.DisableClangModuleSkeletonCUs) {
+      bool CreateSkeletonCU = !ASTFile.empty();
+      bool IsRootModule = !Parent;
+      if (CreateSkeletonCU && IsRootModule) {
+        llvm::DIBuilder DIB(M);
+        DIB.createCompileUnit(IGM.ObjCInterop ? llvm::dwarf::DW_LANG_ObjC
+                                              : llvm::dwarf::DW_LANG_C99,
+                              DIB.createFile(Name, RemappedIncludePath),
+                              TheCU->getProducer(), true, StringRef(), 0,
+                              ASTFile, llvm::DICompileUnit::FullDebug,
+                              Signature);
+        DIB.finalize();
+      }
     }
 
     StringRef Sysroot = IGM.Context.SearchPathOpts.SDKPath;
     llvm::DIModule *M =
-        DBuilder.createModule(Parent, Name, ConfigMacros, IncludePath, Sysroot);
+        DBuilder.createModule(Parent, Name, ConfigMacros, RemappedIncludePath,
+                              Sysroot);
     DIModuleCache.insert({Key, llvm::TrackingMDNodeRef(M)});
     return M;
   }
@@ -711,7 +716,6 @@ private:
     ModuleDecl *M = IM.second;
     if (Optional<ASTSourceDescriptor> ModuleDesc = getClangModule(*M))
       return getOrCreateModule(*ModuleDesc, ModuleDesc->getModuleOrNull());
-
     StringRef Path = getFilenameFromDC(M);
     StringRef Name = M->getName().str();
     return getOrCreateModule(M, TheCU, Name, Path);
@@ -808,7 +812,9 @@ private:
     std::string Result = Mangler.mangleTypeForDebugger(
         Ty, nullptr);
 
-    if (!Opts.DisableRoundTripDebugTypes) {
+    if (!Opts.DisableRoundTripDebugTypes
+        // FIXME: implement type reconstruction for opaque types
+        && !Ty->hasOpaqueArchetype()) {
       // Make sure we can reconstruct mangled types for the debugger.
 #ifndef NDEBUG
       auto &Ctx = Ty->getASTContext();
@@ -1361,6 +1367,9 @@ private:
     case TypeKind::InOut:
       break;
 
+    case TypeKind::OpaqueTypeArchetype:
+      // TODO
+      break;
     case TypeKind::PrimaryArchetype:
     case TypeKind::OpenedArchetype:
     case TypeKind::NestedArchetype: {
@@ -1872,10 +1881,21 @@ void IRGenDebugInfoImpl::setInlinedTrapLocation(IRBuilder &Builder,
                                                 const SILDebugScope *Scope) {
   if (Opts.DebugInfoFormat != IRGenDebugInfoFormat::CodeView)
     return;
-  auto DLInlinedAt = llvm::DebugLoc::get(LastDebugLoc.Line, LastDebugLoc.Column,
-                                         getOrCreateScope(LastScope));
+
+  // The @llvm.trap could be inlined into a chunk of code that was also inlined.
+  // If this is the case then simply using the LastScope's location would
+  // generate debug info that claimed Function A owned Block X and Block X
+  // thought it was owned by Function B. Therefore, we need to find the last
+  // inlined scope to point to.
+  const SILDebugScope *TheLastScope = LastScope;
+  while (TheLastScope->InlinedCallSite &&
+         TheLastScope->InlinedCallSite != TheLastScope) {
+    TheLastScope = TheLastScope->InlinedCallSite;
+  }
+  auto LastLocation = llvm::DebugLoc::get(
+      LastDebugLoc.Line, LastDebugLoc.Column, getOrCreateScope(TheLastScope));
   // FIXME: This location should point to stdlib instead of being artificial.
-  auto DL = llvm::DebugLoc::get(0, 0, getOrCreateScope(Scope), DLInlinedAt);
+  auto DL = llvm::DebugLoc::get(0, 0, getOrCreateScope(Scope), LastLocation);
   Builder.SetCurrentDebugLocation(DL);
 }
 

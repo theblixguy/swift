@@ -1024,27 +1024,34 @@ Requirement getCanonicalRequirement(Requirement &Req) {
   }
 }
 
+static
+StringRef printGenericSignature(SDKContext &Ctx, ArrayRef<Requirement> AllReqs) {
+  llvm::SmallString<32> Result;
+  llvm::raw_svector_ostream OS(Result);
+  if (AllReqs.empty())
+    return StringRef();
+  OS << "<";
+  bool First = true;
+  for (auto Req: AllReqs) {
+    if (!First) {
+      OS << ", ";
+    } else {
+      First = false;
+    }
+    if (Ctx.checkingABI())
+      getCanonicalRequirement(Req).print(OS, PrintOptions::printInterface());
+    else
+      Req.print(OS, PrintOptions::printInterface());
+  }
+  OS << ">";
+  return Ctx.buffer(OS.str());
+}
+
 static StringRef printGenericSignature(SDKContext &Ctx, Decl *D) {
   llvm::SmallString<32> Result;
   llvm::raw_svector_ostream OS(Result);
   if (auto *PD = dyn_cast<ProtocolDecl>(D)) {
-    if (PD->getRequirementSignature().empty())
-      return StringRef();
-    OS << "<";
-    bool First = true;
-    for (auto Req: PD->getRequirementSignature()) {
-      if (!First) {
-        OS << ", ";
-      } else {
-        First = false;
-      }
-      if (Ctx.checkingABI())
-        getCanonicalRequirement(Req).print(OS, PrintOptions::printInterface());
-      else
-        Req.print(OS, PrintOptions::printInterface());
-    }
-    OS << ">";
-    return Ctx.buffer(OS.str());
+    return printGenericSignature(Ctx, PD->getRequirementSignature());
   }
 
   if (auto *GC = D->getAsGenericContext()) {
@@ -1057,6 +1064,11 @@ static StringRef printGenericSignature(SDKContext &Ctx, Decl *D) {
     }
   }
   return StringRef();
+}
+
+static
+StringRef printGenericSignature(SDKContext &Ctx, ProtocolConformance *Conf) {
+  return printGenericSignature(Ctx, Conf->getConditionalRequirements());
 }
 
 static Optional<uint8_t> getSimilarMemberCount(NominalTypeDecl *NTD,
@@ -1146,6 +1158,16 @@ SDKNodeInitInfo::SDKNodeInitInfo(SDKContext &Ctx, Decl *D):
       IsImplicit(D->isImplicit()),
       IsDeprecated(D->getAttrs().getDeprecated(D->getASTContext())),
       IsABIPlaceholder(isABIPlaceholderRecursive(D)) {
+
+  // Force some attributes that are lazily computed.
+  // FIXME: we should use these AST predicates directly instead of looking at
+  // the attributes rdar://50217247.
+  if (auto *VD = dyn_cast<ValueDecl>(D)) {
+    (void) VD->isObjC();
+    (void) VD->isFinal();
+    (void) VD->isDynamic();
+  }
+
   // Capture all attributes.
   auto AllAttrs = D->getAttrs();
   std::transform(AllAttrs.begin(), AllAttrs.end(), std::back_inserter(DeclAttrs),
@@ -1161,6 +1183,9 @@ SDKNodeInitInfo::SDKNodeInitInfo(SDKContext &Ctx, OperatorDecl *OD):
 
 SDKNodeInitInfo::SDKNodeInitInfo(SDKContext &Ctx, ProtocolConformance *Conform):
     SDKNodeInitInfo(Ctx, Conform->getProtocol()) {
+  // The conformance can be conditional. The generic signature keeps track of
+  // the requirements.
+  GenericSig = printGenericSignature(Ctx, Conform);
   // Whether this conformance is ABI placeholder depends on the decl context
   // of this conformance.
   IsABIPlaceholder = isABIPlaceholderRecursive(Conform->getDeclContext()->
@@ -1562,9 +1587,12 @@ SwiftDeclCollector::constructConformanceNode(ProtocolConformance *Conform) {
 void swift::ide::api::
 SwiftDeclCollector::addConformancesToTypeDecl(SDKNodeDeclType *Root,
                                               NominalTypeDecl *NTD) {
+  // Avoid adding the same conformance twice.
+  SmallPtrSet<ProtocolConformance*, 4> Seen;
   for (auto &Conf: NTD->getAllConformances()) {
-    if (!Ctx.shouldIgnore(Conf->getProtocol()))
+    if (!Ctx.shouldIgnore(Conf->getProtocol()) && !Seen.count(Conf))
       Root->addConformance(constructConformanceNode(Conf));
+    Seen.insert(Conf);
   }
 }
 
