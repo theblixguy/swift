@@ -1004,17 +1004,21 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
     auto explicitSubscriptName = DeclName(
         TC.Context, DeclBaseName::createSubscript(), subscriptParamList);
     auto newCandidates = TC.lookupMember(decl, type, explicitSubscriptName);
-    // TODO: Make this work with multiple candidates?
-    auto exactMatch = newCandidates.size() == 1
+    // If we have multiple candidates then let's choose the first one because
+    // we only need one valid candidate to satisfy the requirement.
+    auto firstMatch = newCandidates.size() >= 1
                           ? newCandidates.front().getValueDecl()
                           : nullptr;
 
     TC.diagnose(attr->getLocation(), diag::invalid_dynamic_member_lookup_type,
                 type);
-    if (auto SE = cast_or_null<SubscriptDecl>(exactMatch)) {
-      // TODO: Add a fix-it
+    if (auto SE = cast_or_null<SubscriptDecl>(firstMatch)) {
+      auto index = SE->getIndices()->get(0);
+      auto paramEndLoc = Lexer::getLocForEndOfToken(
+          ctx.SourceMgr, index->getParameterNameLoc());
       TC.diagnose(SE->getLoc(), diag::invalid_dynamic_member_subscript)
-          .highlight(SE->getIndices()->get(0)->getSourceRange());
+          .highlight(index->getSourceRange())
+          .fixItInsert(paramEndLoc, " <# argument label #>");
     }
 
     attr->setInvalid();
