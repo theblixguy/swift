@@ -980,17 +980,45 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
   // This attribute is only allowed on nominal types.
   auto decl = cast<NominalTypeDecl>(D);
   auto type = decl->getDeclaredType();
-  
+  auto &ctx = decl->getASTContext();
+
   // Look up `subscript(dynamicMember:)` candidates.
   auto subscriptName = DeclName(TC.Context, DeclBaseName::createSubscript(),
                                 TC.Context.Id_dynamicMember);
   auto candidates = TC.lookupMember(decl, type, subscriptName);
-  
-  // If there are no candidates, then the attribute is invalid.
+
+  // If there are no candidates, then it is possible that the subscript was
+  // defined without an argument label. For example:
+  //
+  // ```
+  // subscript(dynamicMember: KeyPath<A, B>) -> C
+  // ```
+  //
+  // So, let's lookup again, but this time explicitly check for this case.
   if (candidates.empty()) {
+    auto subscriptParam = new (ctx) ParamDecl(
+        ParamDecl::Specifier::Default, SourceLoc(), SourceLoc(), Identifier(),
+        SourceLoc(), TC.Context.Id_dynamicMember, decl->getDeclContext());
+    auto subscriptParamList =
+        ParameterList::create(ctx, SourceLoc(), {subscriptParam}, SourceLoc());
+    auto explicitSubscriptName = DeclName(
+        TC.Context, DeclBaseName::createSubscript(), subscriptParamList);
+    auto newCandidates = TC.lookupMember(decl, type, explicitSubscriptName);
+    // TODO: Make this work with multiple candidates?
+    auto exactMatch = newCandidates.size() == 1
+                          ? newCandidates.front().getValueDecl()
+                          : nullptr;
+
     TC.diagnose(attr->getLocation(), diag::invalid_dynamic_member_lookup_type,
                 type);
+    if (auto SE = cast_or_null<SubscriptDecl>(exactMatch)) {
+      // TODO: Add a fix-it
+      TC.diagnose(SE->getLoc(), diag::invalid_dynamic_member_subscript)
+          .highlight(SE->getIndices()->get(0)->getSourceRange());
+    }
+
     attr->setInvalid();
+
     return;
   }
 
