@@ -1233,7 +1233,7 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
     attr->setInvalid();
   };
 
-  // Look up subscript candidates
+  // Look up all subscript candidates
   auto candidates =
       TC.lookupMember(decl, type, DeclBaseName::createSubscript());
 
@@ -1242,54 +1242,57 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
     return;
   }
 
-  // Let's look at all the subscripts that we found.
+  // We now have all the subscripts that the user declared inside the type.
   //
-  // 1. A `subscript(dynamicMember <argLabel>:)` is fine.
-  // 2. A `subscript(dynamicMember:) should be diagnosed.
+  // 1. A `subscript(dynamicMember <argument label>:)` is acceptable.
+  //    We need at least one candidate to satisfy the @dynamicMemberLookup
+  //    requirement.
+  // 2. A `subscript(dynamicMember <no argument label>:)` should be diagnosed.
   // 3. A `subscript` without `dynamicMember` should be diagnosed.
   //
-  // Let's validate the subscripts first while ignoring the labels.
-  candidates.filter([&](const LookupResultEntry entry, bool isInner) {
+  // Let's validate the subscript candidates while ignoring the labels.
+  candidates.filter([&](const LookupResultEntry entry, bool isOuter) {
     auto cand = cast<SubscriptDecl>(entry.getValueDecl());
     TC.validateDeclForNameLookup(cand);
     return isValidDynamicMemberLookupSubscript(cand, decl, TC,
                                                /*ignoreLabel*/ true);
   });
 
-  // If there were no valid subscripts, then throw an error.
+  // If there were no valid subscript candidates, then throw an error.
   if (candidates.empty()) {
     emitInvalidTypeDiagnostic();
     return;
   }
 
-  // Let's check the remaining subscripts
-  candidates.filter([&](const LookupResultEntry entry, bool isInner) {
+  // Let's check the remaining subscript candidates by comparing their labels.
+  // We will remove valid candidates, so we're left with invalid ones.
+  candidates.filter([&](const LookupResultEntry entry, bool isOuter) {
     auto cand = cast<SubscriptDecl>(entry.getValueDecl());
     auto index = cand->getIndices()->get(0);
 
-    // Remove the candidate if it's `subscript(dynamicMember: <argLabel>)`
-    // because that's valid.
+    // Remove the candidate if it's a `subscript(dynamicMember: <argument
+    // label>)` because that's a valid candidate.
     if (index->getParameterName() == ctx.Id_dynamicMember &&
         !index->getArgumentName().empty()) {
       return false;
     }
 
-    // The remaining subscripts are invalid
+    // The remaining candidates are invalid
     return true;
   });
 
   if (candidates.empty()) {
-    // We don't have any invalid subscripts, so we're done!
+    // We don't have any invalid candidates, so we're done!
     return;
   }
 
   // Let's diagnose the first candidate because we only need one valid
-  // candidate to satisfy the requirement.
+  // candidate to satisfy the @dynamicMemberLookup requirement.
   auto cand = cast<SubscriptDecl>(candidates.front().getValueDecl());
   auto index = cand->getIndices()->get(0);
   TC.diagnose(cand, diag::invalid_dynamic_member_lookup_type, type);
 
-  // If we have a `subscript(dynamicMember:)` without an argument label, then
+  // If we have a `subscript(dynamicMember <no argument label>:)`, then
   // emit a diagnostic with a fix-it to tell the user that they need to add
   // an explicit argument label.
   if (index->getParameterName() == ctx.Id_dynamicMember &&

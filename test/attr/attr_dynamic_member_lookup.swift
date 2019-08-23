@@ -732,4 +732,3 @@ struct SR_10557_S {
     fatalError()
   }
 }
-
