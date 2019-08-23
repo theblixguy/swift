@@ -725,9 +725,11 @@ _ = SR10597_1_W<SR10597_1>(SR10597_1()).bla // expected-error {{value of type 'S
 
 // SR-10557
 
-@dynamicMemberLookup // expected-error {{@dynamicMemberLookup attribute requires 'SR_10557_S' to have a 'subscript(dynamicMember:)' method that accepts either 'ExpressibleByStringLiteral' or a keypath}}
+@dynamicMemberLookup
 struct SR_10557_S {
-  subscript(dynamicMember: String) -> String { // expected-note {{add an explicit argument label to this subscript to satisfy the @dynamicMemberLookup requirement}}{{26-26= <# argument label #>}}
+  subscript(dynamicMember: String) -> String { // expected-error {{@dynamicMemberLookup attribute requires 'SR_10557_S' to have a 'subscript(dynamicMember:)' method that accepts either 'ExpressibleByStringLiteral' or a keypath}}
+  // expected-note@-1 {{add an explicit argument label to this subscript to satisfy the @dynamicMemberLookup requirement}}{{26-26= <# argument label #>}}
     fatalError()
   }
 }
+
