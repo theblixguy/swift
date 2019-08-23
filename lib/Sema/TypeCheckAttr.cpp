@@ -1144,7 +1144,8 @@ visitDynamicCallableAttr(DynamicCallableAttr *attr) {
 }
 
 static bool hasSingleNonVariadicParam(SubscriptDecl *decl,
-                                      Identifier expectedLabel) {
+                                      Identifier expectedLabel,
+                                      bool useParamName = false) {
   auto *indices = decl->getIndices();
   if (decl->isInvalid() || indices->size() != 1)
     return false;
@@ -1152,6 +1153,10 @@ static bool hasSingleNonVariadicParam(SubscriptDecl *decl,
   auto *index = indices->get(0);
   if (index->isVariadic() || !index->hasValidSignature())
     return false;
+
+  if (useParamName) {
+    return index->getParameterName() == expectedLabel;
+  }
 
   return index->getArgumentName() == expectedLabel;
 }
@@ -1161,13 +1166,13 @@ static bool hasSingleNonVariadicParam(SubscriptDecl *decl,
 /// The method is given to be defined as `subscript(dynamicMember:)`.
 bool swift::isValidDynamicMemberLookupSubscript(SubscriptDecl *decl,
                                                 DeclContext *DC,
-                                                TypeChecker &TC) {
+                                                TypeChecker &TC,
+                                                bool useParamName = false) {
   // It could be
   // - `subscript(dynamicMember: {Writable}KeyPath<...>)`; or
   // - `subscript(dynamicMember: String*)`
   return isValidKeyPathDynamicMemberLookup(decl, TC) ||
          isValidStringDynamicMemberLookup(decl, DC, TC);
-
 }
 
 bool swift::isValidStringDynamicMemberLookup(SubscriptDecl *decl,
@@ -1233,14 +1238,17 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
   //
   // So, let's lookup again, but this time explicitly check for this case.
   if (candidates.empty()) {
-    auto subscriptParam = new (ctx) ParamDecl(
-        ParamDecl::Specifier::Default, SourceLoc(), SourceLoc(), Identifier(),
-        SourceLoc(), TC.Context.Id_dynamicMember, decl->getDeclContext());
-    auto subscriptParamList =
-        ParameterList::create(ctx, SourceLoc(), {subscriptParam}, SourceLoc());
-    auto explicitSubscriptName = DeclName(
-        TC.Context, DeclBaseName::createSubscript(), subscriptParamList);
-    auto newCandidates = TC.lookupMember(decl, type, explicitSubscriptName);
+    auto newCandidates =
+        TC.lookupMember(decl, type, DeclBaseName::createSubscript());
+    // Filter out candidates that are not suitable for @dynamicMemberLookup
+    newCandidates.filter([&](const LookupResultEntry entry, bool isInner) {
+      if (auto decl = cast<SubscriptDecl>(entry.getValueDecl())) {
+        return isValidDynamicMemberLookupSubscript(decl, decl->getDeclContext(),
+                                                   TC, true);
+      }
+
+      return false;
+    });
     // If we have multiple candidates then let's choose the first one because
     // we only need one valid candidate to satisfy the requirement.
     auto firstMatch = newCandidates.size() >= 1
