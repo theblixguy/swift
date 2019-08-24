@@ -1276,23 +1276,6 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
     return;
   }
 
-  // Check the remaining candidates by comparing their labels. We will remove
-  // valid candidates, so that we are left with invalid ones.
-  newCandidates.filter([&](const LookupResultEntry entry, bool isOuter) {
-    auto cand = cast<SubscriptDecl>(entry.getValueDecl());
-    auto index = cand->getIndices()->get(0);
-
-    // Remove the candidate if it is a `subscript(dynamicMember foo:)` because
-    // that is a valid candidate.
-    if (index->getArgumentName() == ctx.Id_dynamicMember &&
-        !index->getParameterName().empty()) {
-      return false;
-    }
-
-    // The remaining candidates are invalid.
-    return true;
-  });
-
   // For each candidate, emit a diagnostic. If we don't have an explicit
   // argument label, then emit a fix-it to suggest the user to add one.
   for (auto cand : newCandidates) {
