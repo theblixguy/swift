@@ -1270,7 +1270,7 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
                                                /*ignoreLabel*/ true);
   });
 
-  // If there were no valid candidates, then throw an error.
+  // If there were no potentially valid candidates, then throw an error.
   if (newCandidates.empty()) {
     emitInvalidTypeDiagnostic(attr->getLocation());
     return;
@@ -1300,7 +1300,7 @@ visitDynamicMemberLookupAttr(DynamicMemberLookupAttr *attr) {
     auto index = SD->getIndices()->get(0);
     TC.diagnose(SD, diag::invalid_dynamic_member_lookup_type, type);
 
-    // If we have something like `subscript(foo:), we want to insert
+    // If we have something like `subscript(foo:)` then we want to insert
     // `dynamicMember` before `foo`.
     if (index->getParameterNameLoc().isValid() &&
         index->getArgumentNameLoc().isInvalid()) {
