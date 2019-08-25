@@ -4195,7 +4195,7 @@ NOTE(availability_guard_with_version_check, none,
      "add 'if #available' version check", ())
 
 NOTE(availability_add_attribute, none,
-     "add @available attribute to enclosing %0", (DescriptiveDeclKind))
+     "add '@available' attribute to enclosing %0", (DescriptiveDeclKind))
 
 ERROR(availability_accessor_only_version_newer, none,
       "%select{getter|setter}0 for %1 is only available in %2 %3"
