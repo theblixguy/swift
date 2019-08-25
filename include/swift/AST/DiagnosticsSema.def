@@ -1193,20 +1193,20 @@ ERROR(transparent_in_classes_not_supported,none,
       "'@_transparent' attribute is not supported on declarations within classes", ())
 
 ERROR(invalid_iboutlet,none,
-      "only instance properties can be declared @IBOutlet", ())
+      "only instance properties can be declared '@IBOutlet'", ())
 ERROR(iboutlet_nonobjc_class,none,
-      "@IBOutlet property cannot %select{have|be an array of}0 "
+      "'@IBOutlet' property cannot %select{have|be an array of}0 "
       "non-'@objc' class type %1", (bool, Type))
 ERROR(iboutlet_nonobjc_protocol,none,
-      "@IBOutlet property cannot %select{have|be an array of}0 "
+      "'@IBOutlet' property cannot %select{have|be an array of}0 "
       "non-'@objc' protocol type %1", (bool, Type))
 ERROR(iboutlet_nonobject_type,none,
-      "@IBOutlet property cannot %select{have|be an array of}0 "
+      "'@IBOutlet' property cannot %select{have|be an array of}0 "
       "non-object type %1", (bool, Type))
 ERROR(iboutlet_only_mutable,none,
-      "@IBOutlet attribute requires property to be mutable", ())
+      "'@IBOutlet' attribute requires property to be mutable", ())
 ERROR(iboutlet_non_optional,none,
-      "@IBOutlet property has non-optional type %0", (Type))
+      "'@IBOutlet' property has non-optional type %0", (Type))
 NOTE(note_make_optional,none,
       "add '?' to form the optional type %0", (Type))
 NOTE(note_make_implicitly_unwrapped_optional,none,
