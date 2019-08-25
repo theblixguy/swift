@@ -1213,7 +1213,7 @@ NOTE(note_make_implicitly_unwrapped_optional,none,
       "add '!' to form an implicitly unwrapped optional", ())
 
 ERROR(invalid_ibdesignable_extension,none,
-      "@IBDesignable can only be applied to classes and extensions "
+      "'@IBDesignable' can only be applied to classes and extensions "
       "of classes", ())
 ERROR(invalid_ibinspectable,none,
       "only instance properties can be declared @%0", (StringRef))

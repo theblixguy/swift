@@ -26,7 +26,7 @@ struct IBDesignableStructTy {}
 @IBDesignable // expected-error {{'@IBDesignable' attribute cannot be applied to this declaration}} {{1-15=}}
 protocol IBDesignableProtTy {}
 
-@IBDesignable // expected-error {{@IBDesignable can only be applied to classes and extensions of classes}} {{1-15=}}
+@IBDesignable // expected-error {{'@IBDesignable' can only be applied to classes and extensions of classes}} {{1-15=}}
 extension IBDesignableStructTy {}
 
 class IBDesignableClassExtensionTy {}
