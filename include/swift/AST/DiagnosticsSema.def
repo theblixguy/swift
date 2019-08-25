@@ -1142,7 +1142,7 @@ ERROR(c_function_pointer_from_generic_function,none,
       "a C function pointer cannot be formed from a reference to a generic "
       "function", ())
 ERROR(invalid_autoclosure_forwarding,none,
-      "add () to forward @autoclosure parameter", ())
+      "add () to forward '@autoclosure' parameter", ())
 ERROR(invalid_autoclosure_pointer_conversion,none,
       "cannot perform pointer conversion of value of type %0 to autoclosure "
       "result type %1",

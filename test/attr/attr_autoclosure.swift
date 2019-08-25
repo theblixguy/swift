@@ -146,13 +146,13 @@ func variadicAutoclosure(_ fn: @autoclosure () -> ()...) {
 // These are all arguably invalid; the autoclosure should have to be called.
 // But as long as we allow them, we shouldn't crash.
 func passNonThrowingToNonThrowingAC(_ fn: @autoclosure () -> Int) {
-  takesAutoclosure(fn) // expected-error {{add () to forward @autoclosure parameter}} {{22-22=()}}
+  takesAutoclosure(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{22-22=()}}
 }
 func passNonThrowingToThrowingAC(_ fn: @autoclosure () -> Int) {
-  takesThrowingAutoclosure(fn) // expected-error {{add () to forward @autoclosure parameter}} {{30-30=()}}
+  takesThrowingAutoclosure(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{30-30=()}}
 }
 func passThrowingToThrowingAC(_ fn: @autoclosure () throws -> Int) {
-  takesThrowingAutoclosure(fn) // expected-error {{add () to forward @autoclosure parameter}} {{30-30=()}}
+  takesThrowingAutoclosure(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{30-30=()}}
 }
 
 func passAutoClosureToSubscriptAndMember(_ fn: @autoclosure () -> Int) {
@@ -165,9 +165,9 @@ func passAutoClosureToSubscriptAndMember(_ fn: @autoclosure () -> Int) {
   }
 
   let s = S()
-  let _ = s.bar(42, fn) // expected-error {{add () to forward @autoclosure parameter}} {{23-23=()}}
-  let _ = s[fn] // expected-error {{add () to forward @autoclosure parameter}} {{15-15=()}}
-  let _ = S.foo(fn) // expected-error {{add () to forward @autoclosure parameter}} {{19-19=()}}
+  let _ = s.bar(42, fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{23-23=()}}
+  let _ = s[fn] // expected-error {{add () to forward '@autoclosure' parameter}} {{15-15=()}}
+  let _ = S.foo(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{19-19=()}}
 }
 
 func passAutoClosureToEnumCase(_ fn: @autoclosure () -> Int) {
@@ -176,7 +176,7 @@ func passAutoClosureToEnumCase(_ fn: @autoclosure () -> Int) {
   }
 
   let _: E = .baz(42) // Ok
-  let _: E = .baz(fn) // expected-error {{add () to forward @autoclosure parameter}} {{21-21=()}}
+  let _: E = .baz(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{21-21=()}}
 }
 
 // rdar://problem/20591571 - Various type inference problems with @autoclosure
@@ -265,12 +265,12 @@ func autoclosure_param_returning_func_type() {
   func biz_1(_ fn: @autoclosure @escaping () -> Int) { overloaded_autoclj(fn) }   // Ok
   func biz_2(_ fn: @autoclosure @escaping () -> Int) { overloaded_autoclj(fn()) } // Ok
   func biz_3(_ fn: @autoclosure () -> Int) { overloaded_autoclj(fn) } // Fails because fn is not marked as @escaping
-  // expected-error@-1 {{add () to forward @autoclosure parameter}} {{67-67=()}}
+  // expected-error@-1 {{add () to forward '@autoclosure' parameter}} {{67-67=()}}
 
   func fiz(_: @autoclosure () -> (() -> Int)) {}
 
   func biz_4(_ fn: @autoclosure @escaping () -> (() -> Int)) { fiz(fn) } // Can't forward in Swift >= 5 mode
-  // expected-error@-1 {{add () to forward @autoclosure parameter}} {{70-70=()}}
+  // expected-error@-1 {{add () to forward '@autoclosure' parameter}} {{70-70=()}}
   func biz_5(_ fn: @escaping () -> (() -> Int)) { fiz(fn) } // Can't forward in Swift >= 5 mode
-  // expected-error@-1 {{add () to forward @autoclosure parameter}} {{57-57=()}}
+  // expected-error@-1 {{add () to forward '@autoclosure' parameter}} {{57-57=()}}
 }
