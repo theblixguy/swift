@@ -4246,7 +4246,7 @@ ERROR(availabilty_string_subscript_migration, none,
 //------------------------------------------------------------------------------
 
 WARNING(discardable_result_on_void_never_function, none,
-        "@discardableResult declared on a function returning %select{Never|Void}0 is unnecessary",
+        "'@discardableResult' declared on a function returning %select{Never|Void}0 is unnecessary",
         (bool))
 
 //------------------------------------------------------------------------------
