@@ -1238,10 +1238,10 @@ NOTE(fixit_rename_in_swift,none,
 NOTE(fixit_rename_in_objc,none,
      "change Objective-C selector to %0", (ObjCSelector))
 ERROR(no_objc_tagged_pointer_not_class_protocol,none,
-      "@unsafe_no_objc_tagged_pointer can only be applied to class protocols",
+      "'@unsafe_no_objc_tagged_pointer' can only be applied to class protocols",
       ())
 ERROR(swift_native_objc_runtime_base_not_on_root_class,none,
-      "@_swift_native_objc_runtime_base_not_on_root_class can only be applied "
+      "'@_swift_native_objc_runtime_base_not_on_root_class' can only be applied "
       "to root classes", ())
 
 ERROR(cdecl_not_at_top_level,none,
