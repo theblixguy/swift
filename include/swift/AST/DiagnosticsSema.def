@@ -1245,11 +1245,11 @@ ERROR(swift_native_objc_runtime_base_not_on_root_class,none,
       "to root classes", ())
 
 ERROR(cdecl_not_at_top_level,none,
-      "@_cdecl can only be applied to global functions", ())
+      "'@_cdecl' can only be applied to global functions", ())
 ERROR(cdecl_empty_name,none,
-      "@_cdecl symbol name cannot be empty", ())
+      "'@_cdecl' symbol name cannot be empty", ())
 ERROR(cdecl_throws,none,
-      "raising errors from @_cdecl functions is not supported", ())
+      "raising errors from '@_cdecl' functions is not supported", ())
 
 ERROR(attr_methods_only,none,
       "only methods can be declared %0", (DeclAttribute))
