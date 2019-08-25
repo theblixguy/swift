@@ -35,24 +35,24 @@ protocol Protocol_Class2 : class {}
 class FáncyName {}
 @objc (FancyName) extension FáncyName {}
 
-@objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+@objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
 var subject_globalVar: Int
 
 var subject_getterSetter: Int {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
   get {
     return 0
   }
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{@objc can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   set {
   }
 }
 
 var subject_global_observingAccessorsVar1: Int = 0 {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{@objc can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   willSet {
   }
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{@objc can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   didSet {
   }
 }
@@ -85,10 +85,10 @@ class subject_getterSetter1 {
   }
 
   var observingAccessorsVar1: Int = 0 {
-    @objc // expected-error {{observing accessors are not allowed to be marked @objc}} {{5-11=}}
+    @objc // expected-error {{observing accessors are not allowed to be marked '@objc'}} {{5-11=}}
     willSet {
     }
-    @objc // expected-error {{observing accessors are not allowed to be marked @objc}} {{5-11=}}
+    @objc // expected-error {{observing accessors are not allowed to be marked '@objc'}} {{5-11=}}
     didSet {
     }
   }
@@ -102,24 +102,24 @@ class subject_staticVar1 {
   class var staticVar2: Int { return 42 }
 }
 
-@objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{1-7=}}
+@objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{1-7=}}
 func subject_freeFunc() {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   var subject_localVar: Int
   // expected-warning@-1 {{variable 'subject_localVar' was never used; consider replacing with '_' or removing it}}
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   func subject_nestedFreeFunc() {
   }
 }
 
-@objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{1-7=}}
+@objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{1-7=}}
 func subject_genericFunc<T>(t: T) {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   var subject_localVar: Int
   // expected-warning@-1 {{variable 'subject_localVar' was never used; consider replacing with '_' or removing it}}
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   func subject_instanceFunc() {}
 }
 
@@ -128,25 +128,25 @@ func subject_funcParam(a: @objc Int) { // expected-error {{attribute can only be
 
 @objc // expected-error {{'@objc' attribute cannot be applied to this declaration}} {{1-7=}}
 struct subject_struct {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   var subject_instanceVar: Int
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   init() {}
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   func subject_instanceFunc() {}
 }
 
 @objc   // expected-error {{'@objc' attribute cannot be applied to this declaration}} {{1-7=}}
 struct subject_genericStruct<T> {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   var subject_instanceVar: Int
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   init() {}
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   func subject_instanceFunc() {}
 }
 
@@ -193,7 +193,7 @@ class subject_genericClass2<T> : Class_ObjC1 {
 }
 
 extension subject_genericClass where T : Hashable {
-  @objc var prop: Int { return 0 } // expected-error{{members of constrained extensions cannot be declared @objc}}
+  @objc var prop: Int { return 0 } // expected-error{{members of constrained extensions cannot be declared '@objc'}}
 }
 
 extension subject_genericClass {
@@ -219,10 +219,10 @@ enum subject_enum: Int {
   @nonobjc // expected-error {{'@nonobjc' attribute cannot be applied to this declaration}}
   case subject_enumElement7
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   init() {}
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}} {{3-9=}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}} {{3-9=}}
   func subject_instanceFunc() {}
 }
 
@@ -247,22 +247,22 @@ protocol subject_protocol1 {
 // CHECK-LABEL: @objc protocol subject_protocol3 {
 
 @objc
-protocol subject_protocol4 : PlainProtocol {} // expected-error {{@objc protocol 'subject_protocol4' cannot refine non-@objc protocol 'PlainProtocol'}}
+protocol subject_protocol4 : PlainProtocol {} // expected-error {{'@objc' protocol 'subject_protocol4' cannot refine non-@objc protocol 'PlainProtocol'}}
 
 @objc
-protocol subject_protocol5 : Protocol_Class1 {} // expected-error {{@objc protocol 'subject_protocol5' cannot refine non-@objc protocol 'Protocol_Class1'}}
+protocol subject_protocol5 : Protocol_Class1 {} // expected-error {{'@objc' protocol 'subject_protocol5' cannot refine non-@objc protocol 'Protocol_Class1'}}
 
 @objc
 protocol subject_protocol6 : Protocol_ObjC1 {}
 
 protocol subject_containerProtocol1 {
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
   var subject_instanceVar: Int { get }
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
   func subject_instanceFunc()
 
-  @objc // expected-error {{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc // expected-error {{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
   static func subject_staticFunc()
 }
 
@@ -309,7 +309,7 @@ protocol subject_containerObjCProtocol2 {
 }
 
 protocol nonObjCProtocol {
-  @objc func objcRequirement() // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc func objcRequirement() // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
 }
 
 func concreteContext1() {
@@ -521,7 +521,7 @@ class subject_subscriptInvalid2 {
   @objc
   subscript(a: PlainClass) -> Int {
   // expected-error@-1 {{subscript cannot be marked @objc because its type cannot be represented in Objective-C}}
-  // expected-note@-2 {{classes not annotated with @objc cannot be represented in Objective-C}}
+  // expected-note@-2 {{classes not annotated with '@objc' cannot be represented in Objective-C}}
     get { return 0 }
   }
 }
@@ -614,7 +614,7 @@ class infer_instanceFunc1 {
 
   @objc func func7_(a: PlainClass) {}
   // expected-error@-1 {{method cannot be marked @objc because the type of the parameter cannot be represented in Objective-C}}
-  // expected-note@-2 {{classes not annotated with @objc cannot be represented in Objective-C}}
+  // expected-note@-2 {{classes not annotated with '@objc' cannot be represented in Objective-C}}
 
   func func7m(a: PlainClass.Type) {}
 // CHECK-LABEL: {{^}} func func7m(a: PlainClass.Type) {
@@ -627,7 +627,7 @@ class infer_instanceFunc1 {
 
   @objc func func8_() -> PlainClass {}
   // expected-error@-1 {{method cannot be marked @objc because its result type cannot be represented in Objective-C}}
-  // expected-note@-2 {{classes not annotated with @objc cannot be represented in Objective-C}}
+  // expected-note@-2 {{classes not annotated with '@objc' cannot be represented in Objective-C}}
 
   func func8m() -> PlainClass.Type {}
 // CHECK-LABEL: {{^}} func func8m() -> PlainClass.Type {
@@ -939,7 +939,7 @@ class infer_instanceVar1 {
 
   @objc var var_PlainClass_: PlainClass
   // expected-error@-1 {{property cannot be marked @objc because its type cannot be represented in Objective-C}}
-  // expected-note@-2 {{classes not annotated with @objc cannot be represented in Objective-C}}
+  // expected-note@-2 {{classes not annotated with '@objc' cannot be represented in Objective-C}}
 
   var var_PlainStruct: PlainStruct
 // CHECK-LABEL: {{^}}  var var_PlainStruct: PlainStruct
@@ -1874,7 +1874,7 @@ class BadClass2 {
   }
 
   var prop3: Int {
-    @objc(setProperty:) didSet { } // expected-error{{observing accessors are not allowed to be marked @objc}} {{5-25=}}
+    @objc(setProperty:) didSet { } // expected-error{{observing accessors are not allowed to be marked '@objc'}} {{5-25=}}
   }
 
   @objc
@@ -1996,15 +1996,15 @@ class Load1 {
 // Members of protocol extensions cannot be @objc
 
 extension PlainProtocol {
-  @objc var property: Int { return 5 } // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
-  @objc subscript(x: Int) -> Class_ObjC1 { return Class_ObjC1() } // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
-  @objc func fun() { } // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc var property: Int { return 5 } // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
+  @objc subscript(x: Int) -> Class_ObjC1 { return Class_ObjC1() } // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
+  @objc func fun() { } // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
 }
 
 extension Protocol_ObjC1 {
-  @objc var property: Int { return 5 } // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
-  @objc subscript(x: Int) -> Class_ObjC1 { return Class_ObjC1() } // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
-  @objc func fun() { } // expected-error{{@objc can only be used with members of classes, @objc protocols, and concrete extensions of classes}}
+  @objc var property: Int { return 5 } // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
+  @objc subscript(x: Int) -> Class_ObjC1 { return Class_ObjC1() } // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
+  @objc func fun() { } // expected-error{{'@objc' can only be used with members of classes, '@objc' protocols, and concrete extensions of classes}}
 }
 
 extension Protocol_ObjC1 {
@@ -2222,18 +2222,18 @@ func ==(lhs: ObjC_Class1, rhs: ObjC_Class1) -> Bool {
     return true
   }
   // CHECK: {{^}} @objc static func + (lhs: OperatorInClass, rhs: OperatorInClass) -> OperatorInClass
-  @objc static func +(lhs: OperatorInClass, rhs: OperatorInClass) -> OperatorInClass { // expected-error {{operator methods cannot be declared @objc}}
+  @objc static func +(lhs: OperatorInClass, rhs: OperatorInClass) -> OperatorInClass { // expected-error {{operator methods cannot be declared '@objc'}}
     return lhs
   }
 } // CHECK: {{^}$}}
 
 @objc protocol OperatorInProtocol {
-  static func +(lhs: Self, rhs: Self) -> Self // expected-error {{@objc protocols must not have operator requirements}}
+  static func +(lhs: Self, rhs: Self) -> Self // expected-error {{'@objc' protocols must not have operator requirements}}
 }
 
 class AdoptsOperatorInProtocol : OperatorInProtocol {
   static func +(lhs: AdoptsOperatorInProtocol, rhs: AdoptsOperatorInProtocol) -> Self {}
-  // expected-error@-1 {{operator methods cannot be declared @objc}}
+  // expected-error@-1 {{operator methods cannot be declared '@objc'}}
 }
 
 //===--- @objc inference for witnesses
@@ -2313,7 +2313,7 @@ class User: NSObject {
 	}
 
 	var other: String {
-    unsafeAddress { // expected-error{{addressors are not allowed to be marked @objc}}
+    unsafeAddress { // expected-error{{'addressors' are not allowed to be marked @objc}}
     }
   }
 }

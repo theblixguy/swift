@@ -1314,7 +1314,7 @@ ERROR(attribute_does_not_apply_to_type,none,
 ERROR(optional_attribute_non_protocol,none,
       "'optional' can only be applied to protocol members", ())
 ERROR(optional_attribute_non_objc_protocol,none,
-      "'optional' can only be applied to members of an @objc protocol", ())
+      "'optional' can only be applied to members of an '@objc' protocol", ())
 ERROR(optional_attribute_missing_explicit_objc,none,
       "'optional' requirements are an Objective-C compatibility feature; add '@objc'",
       ())
@@ -1323,7 +1323,7 @@ ERROR(objcmembers_attribute_nonclass,none,
 ERROR(optional_attribute_initializer,none,
       "'optional' cannot be applied to an initializer", ())
 ERROR(unavailable_method_non_objc_protocol,none,
-      "protocol members can only be marked unavailable in an @objc protocol",
+      "protocol members can only be marked unavailable in an '@objc' protocol",
       ())
 ERROR(missing_in_class_init_1,none,
       "stored property %0 requires an initial value%select{| or should be "
@@ -1706,11 +1706,11 @@ ERROR(non_class_cannot_conform_to_class_protocol,none,
       "non-class type %0 cannot conform to class protocol %1",
       (Type, Type))
 ERROR(cf_class_cannot_conform_to_objc_protocol,none,
-      "Core Foundation class %0 cannot conform to @objc protocol %1 because "
+      "Core Foundation class %0 cannot conform to '@objc' protocol %1 because "
       "Core Foundation types are not classes in Objective-C",
       (Type, Type))
 ERROR(objc_runtime_visible_cannot_conform_to_objc_protocol,none,
-      "class %0 cannot conform to @objc protocol %1 because "
+      "class %0 cannot conform to '@objc' protocol %1 because "
       "the class is only visible via the Objective-C runtime",
       (Type, Type))
 ERROR(objc_generics_cannot_conditionally_conform,none,
@@ -1718,13 +1718,13 @@ ERROR(objc_generics_cannot_conditionally_conform,none,
       "the type uses the Objective-C generics model",
       (Type, Type))
 ERROR(objc_protocol_cannot_have_conditional_conformance,none,
-      "type %0 cannot conditionally conform to @objc protocol %1 because "
+      "type %0 cannot conditionally conform to '@objc' protocol %1 because "
       "Objective-C does not support conditional conformances",
       (Type, Type))
 ERROR(objc_protocol_in_generic_extension,none,
       "conformance of "
       "%select{class from generic context|generic class}0 "
-      "%1 to @objc protocol %2 cannot be in an extension",
+      "%1 to '@objc' protocol %2 cannot be in an extension",
       (bool, Type, Type))
 ERROR(conditional_conformances_cannot_imply_conformances,none,
       "conditional conformance of type %0 to protocol %1 does not imply conformance to "
@@ -2062,7 +2062,7 @@ ERROR(typealias_outside_of_protocol,none,
       "generic parameter base", (Identifier))
 
 ERROR(objc_protocol_inherits_non_objc_protocol,none,
-      "@objc protocol %0 cannot refine non-@objc protocol %1", (Type, Type))
+      "'@objc' protocol %0 cannot refine non-@objc protocol %1", (Type, Type))
 
 ERROR(protocol_where_clause_self_requirement,none,
       "constraint with subject type of 'Self' is not supported; "
@@ -2316,7 +2316,7 @@ ERROR(override_throws,none,
       "cannot override non-throwing %select{method|initializer}0 with "
       "throwing %select{method|initializer}0", (bool))
 ERROR(override_throws_objc,none,
-      "overriding a throwing @objc %select{method|initializer}0 with "
+      "overriding a throwing '@objc' %select{method|initializer}0 with "
       "a non-throwing %select{method|initializer}0 is not supported", (bool))
 
 ERROR(override_optional_mismatch,none,
@@ -3760,20 +3760,20 @@ ERROR(attr_used_without_required_module, none,
       (DeclAttribute, Identifier))
 
 ERROR(invalid_objc_decl_context,none,
-      "@objc can only be used with members of classes, @objc protocols, and "
+      "'@objc' can only be used with members of classes, '@objc' protocols, and "
       "concrete extensions of classes", ())
 ERROR(invalid_objc_decl,none,
       "only classes (and their extensions), protocols, methods, initializers, "
-      "properties, and subscript declarations can be declared @objc", ())
+      "properties, and subscript declarations can be declared '@objc'", ())
 ERROR(invalid_objc_swift_rooted_class,none,
-      "only classes that inherit from NSObject can be declared @objc", ())
+      "only classes that inherit from NSObject can be declared '@objc'", ())
 ERROR(invalid_nonobjc_decl,none,
-      "only class members and extensions of classes can be declared @nonobjc", ())
+      "only class members and extensions of classes can be declared '@nonobjc'", ())
 ERROR(invalid_nonobjc_extension,none,
-      "only extensions of classes can be declared @nonobjc", ())
+      "only extensions of classes can be declared '@nonobjc'", ())
 
 ERROR(objc_in_extension_context,none,
-      "members of constrained extensions cannot be declared @objc", ())
+      "members of constrained extensions cannot be declared '@objc'", ())
 ERROR(objc_in_generic_extension,none,
       "extensions of %select{classes from generic context|generic classes}0 "
       "cannot contain '@objc' members", (bool))
@@ -3781,9 +3781,9 @@ ERROR(objc_in_resilient_extension,none,
       "'@objc' %0 in extension of subclass of %1 requires %2 %3",
       (DescriptiveDeclKind, Identifier, StringRef, llvm::VersionTuple))
 ERROR(objc_operator, none,
-      "operator methods cannot be declared @objc", ())
+      "operator methods cannot be declared '@objc'", ())
 ERROR(objc_operator_proto, none,
-      "@objc protocols must not have operator requirements", ())
+      "'@objc' protocols must not have operator requirements", ())
 WARNING(objc_inference_swift3_dynamic,none,
         "inference of '@objc' for 'dynamic' members is deprecated", ())
 WARNING(objc_inference_swift3_objc_derived,none,
@@ -3881,7 +3881,7 @@ NOTE(not_objc_empty_tuple,none,
 NOTE(not_objc_tuple,none,
       "tuples cannot be represented in Objective-C", ())
 NOTE(not_objc_swift_class,none,
-     "classes not annotated with @objc cannot be represented "
+     "classes not annotated with '@objc' cannot be represented "
      "in Objective-C", ())
 NOTE(not_objc_swift_struct,none,
       "Swift structs cannot be represented in Objective-C", ())
@@ -3913,11 +3913,11 @@ ERROR(no_opaque_return_type_of,none,
 
 
 ERROR(objc_observing_accessor, none,
-      "observing accessors are not allowed to be marked @objc", ())
+      "observing accessors are not allowed to be marked '@objc'", ())
 ERROR(objc_addressor, none,
-      "addressors are not allowed to be marked @objc", ())
+      "addressors are not allowed to be marked '@objc'", ())
 ERROR(objc_coroutine_accessor, none,
-      "'read' and 'modify' accessors are not allowed to be marked @objc", ())
+      "'read' and 'modify' accessors are not allowed to be marked '@objc'", ())
 ERROR(objc_invalid_on_func_variadic,none,
       "method cannot be %" OBJC_ATTR_SELECT "0 because it has a variadic "
       "parameter", (unsigned))
@@ -4047,7 +4047,7 @@ WARNING(witness_non_objc_storage_optional,none,
       (bool, DeclName, DeclName))
 
 ERROR(nonobjc_not_allowed,none,
-      "declaration is %" OBJC_ATTR_SELECT "0, and cannot be marked @nonobjc",
+      "declaration is %" OBJC_ATTR_SELECT "0, and cannot be marked '@nonobjc'",
       (unsigned))
 
 #undef OBJC_DIAG_SELECT_2
@@ -4107,9 +4107,9 @@ ERROR(dynamic_replacement_not_in_extension, none,
 ERROR(dynamic_replacement_must_not_be_dynamic, none,
       "dynamicReplacement(for:) of %0 must not be dynamic itself", (DeclName))
 ERROR(dynamic_replacement_replaced_not_objc_dynamic, none,
-      "%0 is not marked @objc dynamic", (DeclName))
+      "%0 is not marked '@objc dynamic'", (DeclName))
 ERROR(dynamic_replacement_replacement_not_objc_dynamic, none,
-      "%0 is marked @objc dynamic", (DeclName))
+      "%0 is marked '@objc dynamic'", (DeclName))
 ERROR(dynamic_replacement_replaced_constructor_is_convenience, none,
       "replaced constructor %0 is marked as convenience", (DeclName))
 ERROR(dynamic_replacement_replaced_constructor_is_not_convenience, none,
