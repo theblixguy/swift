@@ -361,6 +361,22 @@ llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &OS,
   llvm_unreachable("Unknown SelfAccessKind");
 }
 
+llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &OS, EffectsKind EK) {
+  switch (EK) {
+  case EffectsKind::ReadNone:
+    return OS << "readnone";
+  case EffectsKind::ReadOnly:
+    return OS << "readonly";
+  case EffectsKind::ReleaseNone:
+    return OS << "releasenone";
+  case EffectsKind::ReadWrite:
+    return OS << "readwrite";
+  case EffectsKind::Unspecified:
+    return OS << "unspecified";
+  }
+  llvm_unreachable("Unknown EffectsKind");
+}
+
 DeclContext *Decl::getInnermostDeclContext() const {
   if (auto func = dyn_cast<AbstractFunctionDecl>(this))
     return const_cast<AbstractFunctionDecl*>(func);

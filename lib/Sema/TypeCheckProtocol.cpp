@@ -356,6 +356,13 @@ swift::matchWitness(
         !witnessAttrs.hasAttribute<PostfixAttr>())
       return RequirementMatch(witness, MatchKind::PostfixNonPostfixConflict);
 
+    // If the requirement has @_effects attribute and the witness doesn't,
+    // these don't match.
+    if (reqAttrs.hasAttribute<EffectsAttr>() &&
+        !witnessAttrs.hasAttribute<EffectsAttr>()) {
+      return RequirementMatch(witness, MatchKind::EffectsConflict);
+    }
+
     // Check that the mutating bit is ok.
     if (!funcReq->isMutating() && funcWitness->isMutating())
       return RequirementMatch(witness, MatchKind::MutatingConflict);
@@ -2188,6 +2195,12 @@ diagnoseMatch(ModuleDecl *module, NormalProtocolConformance *conformance,
   case MatchKind::NonObjC:
     diags.diagnose(match.Witness, diag::protocol_witness_not_objc);
     break;
+  case MatchKind::EffectsConflict: {
+    auto effectsAttr = req->getAttrs().getAttribute<EffectsAttr>();
+    diags.diagnose(match.Witness, diag::protocol_witness_effects_conflict,
+                   effectsAttr->getKind());
+    break;
+  }
   }
 }
 

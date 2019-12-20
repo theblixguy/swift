@@ -209,6 +209,9 @@ enum class MatchKind : uint8_t {
 
   /// The witness is explicitly @nonobjc but the requirement is @objc.
   NonObjC,
+
+  /// The witness did not match because of @_effects conflicts.
+  EffectsConflict
 };
 
 /// Describes the kind of optional adjustment performed when
@@ -423,6 +426,7 @@ struct RequirementMatch {
     case MatchKind::RethrowsConflict:
     case MatchKind::ThrowsConflict:
     case MatchKind::NonObjC:
+    case MatchKind::EffectsConflict:
       return false;
     }
 
@@ -452,6 +456,7 @@ struct RequirementMatch {
     case MatchKind::RethrowsConflict:
     case MatchKind::ThrowsConflict:
     case MatchKind::NonObjC:
+    case MatchKind::EffectsConflict:
       return false;
     }
 

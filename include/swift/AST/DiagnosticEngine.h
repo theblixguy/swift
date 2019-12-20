@@ -89,6 +89,7 @@ namespace swift {
     DeclAttribute,
     VersionTuple,
     LayoutConstraint,
+    EffectsKind,
   };
 
   namespace diag {
@@ -118,6 +119,7 @@ namespace swift {
       const DeclAttribute *DeclAttributeVal;
       llvm::VersionTuple VersionVal;
       LayoutConstraint LayoutConstraintVal;
+      EffectsKind EffectsKindVal;
     };
     
   public:
@@ -205,6 +207,9 @@ namespace swift {
     DiagnosticArgument(LayoutConstraint L)
       : Kind(DiagnosticArgumentKind::LayoutConstraint), LayoutConstraintVal(L) {
     }
+
+    DiagnosticArgument(EffectsKind E)
+        : Kind(DiagnosticArgumentKind::EffectsKind), EffectsKindVal(E) {}
     /// Initializes a diagnostic argument using the underlying type of the
     /// given enum.
     template<
@@ -294,6 +299,11 @@ namespace swift {
     LayoutConstraint getAsLayoutConstraint() const {
       assert(Kind == DiagnosticArgumentKind::LayoutConstraint);
       return LayoutConstraintVal;
+    }
+
+    EffectsKind getAsEffectsKind() const {
+      assert(Kind == DiagnosticArgumentKind::EffectsKind);
+      return EffectsKindVal;
     }
   };
   

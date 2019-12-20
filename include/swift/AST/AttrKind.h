@@ -91,6 +91,9 @@ enum class EffectsKind : uint8_t {
   Last_EffectsKind = Unspecified
 };
 
+/// Diagnostic printing of \c EffectsKind.
+llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, EffectsKind EK);
+
 enum : unsigned { NumEffectsKindBits =
   countBitsUsed(static_cast<unsigned>(EffectsKind::Last_EffectsKind)) };
 

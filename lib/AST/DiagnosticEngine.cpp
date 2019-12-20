@@ -613,6 +613,7 @@ static void formatDiagnosticArgument(StringRef Modifier,
     } else {
       assert(Modifier.empty() &&
              "Improper modifier for ReferenceOwnership argument");
+
       Out << Arg.getAsReferenceOwnership();
     }
     break;
@@ -655,6 +656,16 @@ static void formatDiagnosticArgument(StringRef Modifier,
     assert(Modifier.empty() && "Improper modifier for LayoutConstraint argument");
     Out << FormatOpts.OpeningQuotationMark << Arg.getAsLayoutConstraint()
         << FormatOpts.ClosingQuotationMark;
+    break;
+  case DiagnosticArgumentKind::EffectsKind:
+    if (Modifier == "select") {
+      formatSelectionArgument(ModifierArguments, Args,
+                              unsigned(Arg.getAsEffectsKind()), FormatOpts,
+                              Out);
+    } else {
+      assert(Modifier.empty() && "Improper modifier for EffectsKind argument");
+      Out << Arg.getAsEffectsKind();
+    }
     break;
   }
 }

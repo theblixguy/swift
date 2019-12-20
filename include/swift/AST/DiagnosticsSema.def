@@ -2110,6 +2110,9 @@ NOTE(protocol_witness_throws_conflict,none,
      "candidate throws, but protocol does not allow it", ())
 NOTE(protocol_witness_not_objc,none,
      "candidate is explicitly '@nonobjc'", ())
+NOTE(protocol_witness_effects_conflict, none,
+     "candidate is not marked '@_effects(%0)', but protocol requires it",
+     (EffectsKind))
 
 NOTE(protocol_witness_type,none,
      "possibly intended match", ())
