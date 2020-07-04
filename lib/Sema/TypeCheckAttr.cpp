@@ -257,6 +257,8 @@ public:
   void visitDifferentiableAttr(DifferentiableAttr *attr);
   void visitDerivativeAttr(DerivativeAttr *attr);
   void visitTransposeAttr(TransposeAttr *attr);
+  void visitRequiresSuperAttr(RequiresSuperAttr *attr);
+  void visitIgnoresSuperAttr(IgnoresSuperAttr *attr);
 };
 } // end anonymous namespace
 
@@ -5147,4 +5149,34 @@ void AttributeChecker::visitTransposeAttr(TransposeAttr *attr) {
 
   // Set the resolved linearity parameter indices in the attribute.
   attr->setParameterIndices(linearParamIndices);
+}
+
+void AttributeChecker::visitRequiresSuperAttr(RequiresSuperAttr *attr) {
+  auto *FD = cast<FuncDecl>(D);
+  auto &DE = FD->getASTContext().Diags;
+  if (FD->getDeclContext()->getSelfClassDecl()) {
+    // '@requiresSuper' cannot be applied to 'final' methods as they can't be
+    // overridden.
+    if (FD->isFinal()) {
+      DE.diagnose(attr->getLocation(), diag::super_attr_not_valid_final_method, attr->getAttrName());
+      FD->getAttrs().removeAttribute(attr);
+      attr->setInvalid();
+    }
+  } else {
+    // '@requiresSuper' can only be applied on methods inside classes.
+    DE.diagnose(attr->getLocation(), diag::super_attr_only_valid_on_class_method, attr->getAttrName());
+    FD->getAttrs().removeAttribute(attr);
+    attr->setInvalid();
+  }
+}
+
+void AttributeChecker::visitIgnoresSuperAttr(IgnoresSuperAttr *attr) {
+  auto *FD = cast<FuncDecl>(D);
+  if (!FD->getDeclContext()->getSelfClassDecl()) {
+    // '@ignoresSuper' can only be applied on methods inside classes.
+    auto &DE = FD->getASTContext().Diags;
+    DE.diagnose(attr->getLocation(), diag::super_attr_only_valid_on_class_method, attr->getAttrName());
+    FD->getAttrs().removeAttribute(attr);
+    attr->setInvalid();
+  }
 }
