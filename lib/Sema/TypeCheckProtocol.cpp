@@ -1945,19 +1945,6 @@ static Type getTypeForDisplay(ModuleDecl *module, ValueDecl *decl) {
 
   Type type = decl->getInterfaceType();
 
-  // Redeclaration checking might mark a candidate as `invalid` and
-  // reset it's type to ErrorType, let's dig out original type to
-  // make the diagnostic better.
-  //
-  // FIXME: Remove this once setInvalid() goes away.
-  if (auto errorType = type->getAs<ErrorType>()) {
-    auto originalType = errorType->getOriginalType();
-    if (!originalType || !originalType->is<AnyFunctionType>())
-      return type;
-
-    type = originalType;
-  }
-
   // If we're not in a type context, just grab the interface type.
   if (!decl->getDeclContext()->isTypeContext())
     return type;
