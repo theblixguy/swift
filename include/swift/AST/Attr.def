@@ -560,7 +560,7 @@ SIMPLE_DECL_ATTR(noDerivative, NoDerivative,
   ABIBreakingToAdd | ABIBreakingToRemove | APIBreakingToAdd | APIBreakingToRemove,
   100)
 
-SIMPLE_DECL_ATTR(requiresSuper, RequiresSuper,
+DECL_ATTR(requiresSuper, RequiresSuper,
   OnFunc |
   ABIStableToAdd | ABIStableToRemove | APIStableToAdd | APIStableToRemove,
   101)

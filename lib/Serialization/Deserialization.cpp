@@ -4443,6 +4443,18 @@ llvm::Error DeclDeserializer::deserializeDeclAttributes() {
         break;
       }
 
+      case decls_block::RequiresSuper_DECL_ATTR: {
+        bool isImplicit;
+        Optional<StringRef> message = None;
+        if (!blobData.empty()) {
+          message = blobData;
+        }
+        serialization::decls_block::RequiresSuperDeclAttrLayout::readRecord(
+            scratch, isImplicit);
+        Attr = new (ctx) RequiresSuperAttr(message, isImplicit);
+        break;
+      }
+
 #define SIMPLE_DECL_ATTR(NAME, CLASS, ...) \
       case decls_block::CLASS##_DECL_ATTR: { \
         bool isImplicit; \
