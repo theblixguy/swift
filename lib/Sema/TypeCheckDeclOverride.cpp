@@ -1437,7 +1437,6 @@ namespace  {
     UNINTERESTING_ATTR(Inline)
     UNINTERESTING_ATTR(Optimize)
     UNINTERESTING_ATTR(Inlinable)
-    UNINTERESTING_ATTR(IgnoresSuper)
     UNINTERESTING_ATTR(Effects)
     UNINTERESTING_ATTR(Final)
     UNINTERESTING_ATTR(FixedLayout)
@@ -1568,8 +1567,7 @@ namespace  {
       // Add the @requiresSuper attribute to the override, unless it's final.
       auto &C = Override->getASTContext();
       auto attrs = Override->getAttrs();
-      if (!attrs.hasAttribute<RequiresSuperAttr>() &&
-          !attrs.hasAttribute<IgnoresSuperAttr>() && !Override->isFinal()) {
+      if (!attrs.hasAttribute<RequiresSuperAttr>() && !Override->isFinal()) {
         Override->getAttrs().add(new (C)
                                      RequiresSuperAttr(attr->Message, false));
       }
