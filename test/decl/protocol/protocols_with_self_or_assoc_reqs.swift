@@ -51,7 +51,9 @@ struct S2: P2 {
 
 let p2: P2 = S2()
 p2.takesSelf(S2()) // expected-error {{member 'takesSelf' cannot be used on value of protocol type 'P2'; use a generic constraint instead}}
-p2.takesAssoc(0) 
+
+// FIXME: Silence argument mismatches on unsupported accesses?
+p2.takesAssoc(0)
 // expected-error@-1 {{member 'takesAssoc' cannot be used on value of protocol type 'P2'; use a generic constraint instead}} 
 // expected-error@-2 {{cannot convert value of type 'Int' to expected argument type 'P2.Q'}}
 p2.takesNestedSelf { _ in } // okay
@@ -126,3 +128,126 @@ _ = p1 as P1 // okay
 _ = p2 as P2 // okay
 _ = p3 as P3 // okay
 _ = p4 as P4 // okay
+
+// Settable storage declaration requirements with a covariant 'Self' result type
+// may not be used with an existential base.
+protocol P5 {
+  subscript() -> Self { get set }
+
+  var prop: Self { get set }
+}
+
+func takesP5(p5: P5) {
+  _ = p5[]
+  // expected-error@-1{{member 'subscript' cannot be used on value of protocol type 'P5'; use a generic constraint instead}}
+  _ = p5.prop
+  // expected-error@-1{{member 'prop' cannot be used on value of protocol type 'P5'; use a generic constraint instead}}
+}
+
+// References to associated types that are concrete in the context of the
+// existential base type do not affect the ability to use the member.
+
+class Class {}
+struct Struct<T> {}
+
+protocol Q1a where B == Struct<A> {
+  associatedtype A
+  associatedtype B
+  associatedtype C
+
+  var propA: A { get }
+  var propB: Struct<B> { get }
+
+  func takesA1(_: A)
+  func takesB(_: B)
+  func takesSelf(_: A, _: Self)
+  func returnsC() -> C
+}
+protocol Q1b: Class, Q1a where A == Bool, C == Self {
+  func takesA2(_: A)
+}
+
+func takesQ1a(arg: Q1a, never: Never) {
+  // Self reference in invariant position.
+  arg.takesB(never) // (Struct<Self.A>) -> ()
+  // expected-error@-1 {{member 'takesB' cannot be used on value of protocol type 'Q1a'; use a generic constraint instead}}
+  // expected-error@-2 {{cannot convert value of type 'Never' to expected argument type 'Struct<Q1a.A>'}}
+}
+
+func takesQ1b(arg: Q1b, never: Never) {
+  // OK, A is known to be Bool on Q1b.
+  _ = arg.propA // Bool
+  // OK, B is known to be Struct<Bool> on Q1b.
+  _ = arg.propB // Struct<Struct<Bool>>
+
+  // OK, A is known to be Bool on Q1b.
+  arg.takesA1(true) // (Bool) -> ()
+  arg.takesA2(true) // (Bool) -> ()
+
+  // OK, B is known to be Struct<Bool> on Q1b.
+  arg.takesB(Struct<Bool>()) // (Struct<Bool>) -> ()
+
+  // OK, D is in covariant position and known to be Self on Q1b.
+  let x1 /*: Q1b*/ = arg.returnsC() // () -> Self
+  let x2: Q1a = arg.returnsC()
+  let x3 = arg.returnsC()
+  let x4: Class = arg.returnsC()
+
+  // Self in contravariant position.
+  arg.takesSelf(true, never) // (Bool, Self) -> ()
+  // expected-error@-1 {{member 'takesSelf' cannot be used on value of protocol type 'Q1b'; use a generic constraint instead}}
+  // expected-error@-2 {{cannot convert value of type 'Never' to expected argument type 'Class'}}
+}
+
+protocol Q2a where A == Bool {
+  associatedtype A
+}
+protocol Q2b {
+  associatedtype A
+
+  func takesA(arg: A) -> Self
+}
+func takesQ2Composition(arg: Q2a & Q2b) -> Q2a {
+  // OK, A is known to be Bool on Q2a & Q2b.
+  return arg.takesA(arg: true) // (Bool) -> Q2a & Q2b
+}
+
+class Class3: Q3a {
+  typealias A = Bool
+}
+protocol Q3a {
+  associatedtype A
+}
+protocol Q3b: Q3a {
+  associatedtype B
+
+  func takesA(arg: A)
+}
+func takesP7Composition(arg: Q3b & Class3) {
+  // OK, A is known to be Bool on Q3b & Class3.
+  arg.takesA(arg: true) // (Bool) -> ()
+}
+
+// FIXME: Check composition requirement signatures.
+protocol Q4a where A == Bool {
+  associatedtype A
+  func takesA(_: A)
+}
+protocol Q4b where A == Never {
+  associatedtype A
+}
+func takesP8Composition(arg: Q4a & Q4b) {
+  arg.takesA(true)
+}
+
+// FIXME: Check composition requirement signatures.
+protocol Q5a {
+  associatedtype A: Sequence
+  func takesA(_: A)
+}
+protocol Q5b where A == Bool {
+  associatedtype A
+}
+func takesP9Composition(arg: Q5a & Q5b) {
+  arg.takesA(true)
+}
